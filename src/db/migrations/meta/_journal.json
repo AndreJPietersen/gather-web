@@ -8,6 +8,55 @@
       "when": 1789214329992,
       "tag": "0000_silent_venus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789306235901,
+      "tag": "0001_bitter_sprite",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789311756378,
+      "tag": "0002_wooden_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789312735942,
+      "tag": "0003_simple_korvac",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789320579475,
+      "tag": "0004_polite_deathbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789321367301,
+      "tag": "0005_many_stardust",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789324532258,
+      "tag": "0006_milky_blonde_phantom",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789325433125,
+      "tag": "0007_mature_iron_monger",
+      "breakpoints": true
     }
   ]
 }

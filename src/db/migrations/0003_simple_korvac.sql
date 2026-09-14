@@ -1,0 +1,1 @@
+CREATE POLICY "events_select_pending_invitee" ON "events" AS PERMISSIVE FOR SELECT TO "authenticated" USING (public.is_event_pending_invitee("events"."id", (select auth.uid())));

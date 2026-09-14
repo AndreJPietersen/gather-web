@@ -1,5 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fredoka, Nunito } from "next/font/google";
+import { AppShell } from "@/components/app-shell";
+import { getSessionContext } from "@/lib/session";
 import "./globals.css";
 
 // next/font self-hosts these automatically at build time — the prototype's
@@ -24,10 +26,21 @@ export const metadata: Metadata = {
   description: "Plan it. Book it. Pull it off.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// viewport-fit=cover is what makes env(safe-area-inset-bottom) resolve to a
+// real value instead of 0 on iOS Safari — required for the fixed bottom tab
+// bar to clear the home-indicator area rather than sit under it.
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await getSessionContext();
+
   return (
     <html lang="en" className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-bg font-body text-text">{children}</body>
+      <body className="min-h-full flex flex-col bg-bg font-body text-text">
+        <AppShell session={session}>{children}</AppShell>
+      </body>
     </html>
   );
 }

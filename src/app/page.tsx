@@ -1,48 +1,125 @@
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/server";
+import { getSessionContext } from "@/lib/session";
+import { formatEventDateTime } from "@/lib/utils";
 
-// Phase 1 style-proof page — not the real guest Home (that's Phase 3). Just
-// enough on screen to visually confirm fonts/colors/shapes/components are
-// wired correctly end to end before building real screens on top of them.
-export default function Home() {
+interface PublicEvent {
+  id: string;
+  name: string;
+  event_type: string | null;
+  start_at: string;
+  location: string | null;
+}
+
+interface VerifiedVendor {
+  id: string;
+  name: string;
+  primary_category: string | null;
+}
+
+// The real guest Home — replaces Phase 1's style-proof page. Branches on
+// auth state (never done once across the whole Salesforce-era LWC build,
+// explicitly called out in docs/gather_web_architecture.md as a gap to
+// actually close this time) and exercises the anon-role RLS policies on
+// `events` and `vendors` first, per Phase 3's "riskiest part first"
+// sequencing.
+export default async function Home() {
+  const supabase = await createClient();
+  const [session, { data: events }, { data: vendors }] = await Promise.all([
+    getSessionContext(),
+    supabase
+      .from("events")
+      .select("id, name, event_type, start_at, location")
+      .eq("status", "published")
+      .eq("visibility", "public")
+      .order("start_at", { ascending: true })
+      .limit(6)
+      .returns<PublicEvent[]>(),
+    supabase
+      .from("vendors")
+      .select("id, name, primary_category")
+      .eq("verification_status", "verified")
+      .order("created_at", { ascending: false })
+      .limit(4)
+      .returns<VerifiedVendor[]>(),
+  ]);
+
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
+      {session.status === "authenticated" ? (
+        <div>
+          <h1 className="font-display text-3xl font-semibold text-ink">
+            Welcome back{session.displayName ? `, ${session.displayName}` : ""}
+          </h1>
+          <p className="mt-1 text-sm font-semibold text-text-muted">Plan your next event or check the directory.</p>
+          <div className="mt-4 flex gap-2">
+            <LinkButton href="/events" variant="primary" className="flex-1">
+              My Events
+            </LinkButton>
+            <LinkButton href="/vendors" variant="secondary" className="flex-1">
+              Vendors
+            </LinkButton>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h1 className="font-display text-3xl font-semibold text-ink">Gather</h1>
+          <p className="mt-1 text-sm font-semibold text-text-muted">Plan it. Book it. Pull it off.</p>
+          <div className="mt-4 flex flex-col gap-2">
+            <LinkButton href="/register?persona=planner" variant="primary">
+              Plan an Event
+            </LinkButton>
+            <LinkButton href="/register?persona=vendor" variant="secondary">
+              List Your Business
+            </LinkButton>
+          </div>
+        </div>
+      )}
+
       <div>
-        <h1 className="font-display text-3xl font-semibold text-ink">Gather</h1>
-        <p className="mt-1 text-sm font-semibold text-text-muted">
-          Design system check — Phase 1, not the real Home screen yet.
-        </p>
+        <h2 className="font-display text-lg font-semibold text-ink">Upcoming Events</h2>
+        {events && events.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-3">
+            {events.map((event) => (
+              <Link key={event.id} href={`/events/${event.id}`}>
+                <Card className="flex flex-col gap-1">
+                  <p className="text-sm font-extrabold text-text">{event.name}</p>
+                  <p className="text-xs font-semibold text-text-muted">
+                    {formatEventDateTime(event.start_at)}
+                    {event.location ? ` · ${event.location}` : ""}
+                  </p>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <Card className="mt-3">
+            <p className="text-sm font-semibold text-text-muted">No public events yet — check back soon.</p>
+          </Card>
+        )}
       </div>
 
-      <Card className="flex flex-col gap-3">
-        <span className="text-xs font-extrabold tracking-wide text-primary">TYPE</span>
-        <p className="font-display text-xl font-semibold">Fredoka display type</p>
-        <p className="text-sm font-bold">Nunito body text, bold.</p>
-        <p className="text-sm font-semibold text-text-muted">Nunito body text, muted.</p>
-      </Card>
-
-      <Card className="flex flex-col gap-3">
-        <span className="text-xs font-extrabold tracking-wide text-primary">BUTTONS</span>
-        <Button variant="primary">Plan an Event</Button>
-        <Button variant="secondary">List Your Business</Button>
-      </Card>
-
-      <Card className="flex flex-col gap-3">
-        <span className="text-xs font-extrabold tracking-wide text-primary">INPUT</span>
-        <Input placeholder="Search vendors" />
-      </Card>
-
-      <div className="flex gap-2">
-        <span className="rounded-pill bg-secondary-soft px-3 py-1 text-xs font-extrabold text-ink">
-          Secondary soft
-        </span>
-        <span className="rounded-pill bg-success-soft px-3 py-1 text-xs font-extrabold text-ink">
-          Success soft
-        </span>
-        <span className="rounded-pill bg-primary-soft px-3 py-1 text-xs font-extrabold text-ink">
-          Primary soft
-        </span>
+      <div>
+        <h2 className="font-display text-lg font-semibold text-ink">Vendors</h2>
+        {vendors && vendors.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {vendors.map((vendor) => (
+              <Link
+                key={vendor.id}
+                href={`/vendors/${vendor.id}`}
+                className="rounded-pill bg-primary-soft px-3 py-1.5 text-xs font-extrabold text-primary"
+              >
+                {vendor.name}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <Card className="mt-3">
+            <p className="text-sm font-semibold text-text-muted">No verified vendors yet — check back soon.</p>
+          </Card>
+        )}
       </div>
     </main>
   );

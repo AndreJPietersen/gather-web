@@ -48,11 +48,26 @@
   --radius-field: 16px;
 }
 
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
+/*
+ * @layer base, not plain CSS: Tailwind v4 gives any un-layered CSS higher
+ * priority than ALL of its own utility classes, regardless of selector
+ * specificity — a plain `a { color: ... }` here would beat `text-white`
+ * on every Link-based button (LinkButton) no matter what, since Tailwind's
+ * utilities live in @layer utilities. Putting these in @layer base instead
+ * makes them participate in the same layer ordering Tailwind itself uses
+ * (base < utilities), so a utility class on a specific element correctly
+ * overrides this default the normal way. Found the hard way: LinkButton's
+ * "Plan an Event" CTA rendered with invisible magenta-on-magenta text
+ * before this fix, because `bg-primary` also colored the anchor's own
+ * default text, which text-white couldn't out-cascade.
+ */
+@layer base {
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
 
-button {
-  cursor: pointer;
+  button {
+    cursor: pointer;
+  }
 }
