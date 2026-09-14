@@ -38,7 +38,25 @@ export async function respondToEventInvite(formData: FormData): Promise<void> {
 // Upserted on demand rather than seeded by the signup trigger — no row
 // exists until the first save, so the form renders with hardcoded defaults
 // (matching the column defaults) when there's nothing in the DB yet.
-export async function saveNotificationPreferences(formData: FormData): Promise<void> {
+const upcomingWindowSchema = z.enum(["on_day", "one_day_before", "one_week_before"]);
+
+export interface SaveNotificationPreferencesState {
+  success?: boolean;
+}
+
+// Returns state + is driven by useActionState/router.refresh() on the
+// client (see notification-preferences-form.tsx), not a plain
+// `action={serverFunction}` form — revalidatePath() alone reliably updates
+// the server-side cache but doesn't reliably repaint the *already-mounted*
+// client page with the new value; the select kept showing the pre-save
+// option until a hard reload even though the DB write was correct on the
+// very first save. Same root cause and same fix as AcceptQuoteForm's own
+// documented staleness bug: a client-triggered router.refresh(), which
+// runs after useActionState has already committed this action's response.
+export async function saveNotificationPreferences(
+  _prevState: SaveNotificationPreferencesState,
+  formData: FormData,
+): Promise<SaveNotificationPreferencesState> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -48,6 +66,8 @@ export async function saveNotificationPreferences(formData: FormData): Promise<v
     redirect("/login");
   }
 
+  const parsedWindow = upcomingWindowSchema.safeParse(formData.get("upcomingWindow"));
+
   await supabase.from("notification_preferences").upsert({
     profile_id: user.id,
     email_reminders: formData.get("emailReminders") === "on",
@@ -56,9 +76,17 @@ export async function saveNotificationPreferences(formData: FormData): Promise<v
     // migration comment), so there's nothing to opt into.
     sms_reminders: false,
     push_reminders: false,
+    upcoming_window: parsedWindow.success ? parsedWindow.data : "one_week_before",
   });
 
-  revalidatePath("/profile");
+  // Home and My Events both read this preference server-side on every
+  // render, so they need to be told this changed too, not just Profile —
+  // still needed for those OTHER pages' server-side caches even though
+  // Profile's own repaint now goes through router.refresh() instead.
+  revalidatePath("/");
+  revalidatePath("/events");
+
+  return { success: true };
 }
 
 const vendorInviteResponseSchema = z.object({

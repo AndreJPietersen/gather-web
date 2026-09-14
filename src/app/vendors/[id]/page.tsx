@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Quote } from "lucide-react";
+import { BackButton } from "@/components/ui/back-button";
 import { Card } from "@/components/ui/card";
+import { VerificationBadge } from "@/components/vendor/verification-badge";
 import { createClient } from "@/lib/supabase/server";
 import { AssociateEventForm } from "./associate-event-form";
+import { VendorGalleryCarousel } from "./vendor-gallery-carousel";
 
 interface VendorDetail {
   id: string;
@@ -12,6 +16,18 @@ interface VendorDetail {
   phone: string | null;
   website: string | null;
   verification_status: "unclaimed" | "claim_pending" | "verified";
+}
+
+interface SocialLinkRow {
+  id: string;
+  platform: string;
+  url: string;
+}
+
+interface GalleryImageRow {
+  id: string;
+  storage_path: string;
+  caption: string | null;
 }
 
 // Guest vendor profile. Relying on the `vendors_select_public_or_own` RLS
@@ -43,31 +59,66 @@ export default async function VendorProfilePage({ params }: PageProps<"/vendors/
     myEvents = data ?? [];
   }
 
+  // Social links/gallery are only ever populated for verified vendors (RLS
+  // gates writes to that status), so skip the queries entirely rather than
+  // asking for rows that can't exist on every unverified/unclaimed listing.
+  let socialLinks: SocialLinkRow[] = [];
+  let galleryImages: GalleryImageRow[] = [];
+  if (vendor.verification_status === "verified") {
+    const [{ data: links }, { data: images }] = await Promise.all([
+      supabase.from("vendor_social_links").select("id, platform, url").eq("vendor_id", vendor.id).returns<SocialLinkRow[]>(),
+      supabase
+        .from("vendor_gallery_images")
+        .select("id, storage_path, caption")
+        .eq("vendor_id", vendor.id)
+        .order("created_at", { ascending: false })
+        .returns<GalleryImageRow[]>(),
+    ]);
+    socialLinks = links ?? [];
+    galleryImages = images ?? [];
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="font-display text-3xl font-semibold text-ink">{vendor.name}</h1>
-          {vendor.verification_status === "verified" ? (
-            <span className="rounded-pill bg-success-soft px-2 py-0.5 text-xs font-extrabold text-ink">Verified</span>
-          ) : (
-            <span className="rounded-pill bg-secondary-soft px-2 py-0.5 text-xs font-extrabold text-ink">
-              Unverified
-            </span>
-          )}
-        </div>
+      <div className="flex flex-col gap-2">
+        <BackButton />
+        <h1 className="font-display text-3xl font-semibold text-ink">{vendor.name}</h1>
+        <VerificationBadge verified={vendor.verification_status === "verified"} description={vendor.description} />
         {vendor.primary_category && (
           <p className="mt-1 text-sm font-semibold text-text-muted">{vendor.primary_category}</p>
         )}
       </div>
 
-      {vendor.description && (
-        <Card>
-          <p className="text-sm font-semibold text-text">{vendor.description}</p>
-        </Card>
+      {galleryImages.length > 0 && (
+        <div className="-mx-6">
+          <VendorGalleryCarousel
+            altBase={`${vendor.name} gallery photo`}
+            images={galleryImages.map((image) => ({
+              id: image.id,
+              caption: image.caption,
+              url: supabase.storage.from("vendor-gallery").getPublicUrl(image.storage_path).data.publicUrl,
+            }))}
+          />
+        </div>
       )}
 
-      {(vendor.phone || vendor.website) && (
+      {vendor.description &&
+        (galleryImages.length === 0 ? (
+          // No photos to lead with yet — a bigger, decorated treatment of
+          // the vendor's own words stands in for a hero image instead of
+          // just repeating the same small text card the gallery would
+          // otherwise use.
+          <Card className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-primary-soft via-surface to-secondary-soft px-6 py-8">
+            <Quote size={28} strokeWidth={2.5} className="text-primary/40" />
+            <p className="mt-3 text-lg font-semibold leading-relaxed text-ink">{vendor.description}</p>
+          </Card>
+        ) : (
+          <Card>
+            <p className="text-sm font-semibold text-text">{vendor.description}</p>
+          </Card>
+        ))}
+
+      {(vendor.phone || vendor.website || socialLinks.length > 0) && (
         <Card className="flex flex-col gap-1">
           {vendor.phone && <p className="text-sm font-bold text-text">{vendor.phone}</p>}
           {vendor.website && (
@@ -75,6 +126,11 @@ export default async function VendorProfilePage({ params }: PageProps<"/vendors/
               {vendor.website}
             </a>
           )}
+          {socialLinks.map((link) => (
+            <a key={link.id} href={link.url} target="_blank" rel="noreferrer" className="text-sm font-bold">
+              {link.platform}
+            </a>
+          ))}
         </Card>
       )}
 

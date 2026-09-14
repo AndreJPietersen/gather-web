@@ -1,5 +1,22 @@
 import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+// tailwind-merge ships with hardcoded knowledge of Tailwind's *default*
+// theme only — it has no way to know `rounded-pill`/`rounded-field` (this
+// project's own @theme extensions in globals.css) belong to the same
+// "border radius" conflict group as `rounded-[22px]`. Without this,
+// cn("rounded-[22px] ...", "rounded-pill ...") — e.g. Card's base classes
+// overridden by a pill-shaped LinkCard — left BOTH classes in the output
+// instead of the later one winning, a real regression found in code review
+// (src/app/page.tsx's vendor chips). Teaching it about the two custom radius
+// values closes this for every future cn() call, not just that one call site.
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      rounded: ["rounded-pill", "rounded-field"],
+    },
+  },
+});
 
 // Combines conditional class names (clsx) and resolves conflicting Tailwind
 // utilities in favor of the last one wins (tailwind-merge) — e.g.

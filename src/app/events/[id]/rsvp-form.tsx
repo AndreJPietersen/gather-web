@@ -1,15 +1,23 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { fireSuccessConfetti } from "@/lib/confetti";
 import { submitRsvp, type RsvpState } from "./actions";
 
 const initialState: RsvpState = {};
 
 export function RsvpForm({ eventId }: { eventId: string }) {
   const [state, formAction, pending] = useActionState(submitRsvp, initialState);
+
+  useEffect(() => {
+    if (state.success) {
+      fireSuccessConfetti();
+    }
+  }, [state.success]);
 
   if (state.success) {
     return (
@@ -26,10 +34,9 @@ export function RsvpForm({ eventId }: { eventId: string }) {
         <Input name="name" placeholder="Your name" required autoComplete="name" />
         <Input name="email" type="email" placeholder="Email" required autoComplete="email" />
         <Input name="phone" type="tel" placeholder="Phone (optional)" autoComplete="tel" />
-        <label className="flex items-center gap-2 text-sm font-semibold text-text">
-          Additional guests
-          <Input name="guestCount" type="number" min={0} max={20} defaultValue={0} className="w-20" />
-        </label>
+        <Field label="Additional guests">
+          <Input name="guestCount" type="number" min={0} max={20} defaultValue={0} className="w-24" />
+        </Field>
         {state.error && <p className="text-sm font-semibold text-primary">{state.error}</p>}
         <Button type="submit" variant="primary" disabled={pending}>
           {pending ? "Submitting…" : "I'll be there"}

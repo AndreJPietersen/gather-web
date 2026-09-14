@@ -57,6 +57,48 @@
       "when": 1789325433125,
       "tag": "0007_mature_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789371888312,
+      "tag": "0008_puzzling_prowler",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789386384791,
+      "tag": "0009_lonely_living_mummy",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789388514843,
+      "tag": "0010_common_scrambler",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789389371500,
+      "tag": "0011_powerful_devos",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789408261343,
+      "tag": "0012_silky_silvermane",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789412645428,
+      "tag": "0013_nervous_chimera",
+      "breakpoints": true
     }
   ]
 }

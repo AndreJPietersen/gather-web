@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackButton } from "@/components/ui/back-button";
 import { Card } from "@/components/ui/card";
+import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils";
 import { RsvpForm } from "./rsvp-form";
@@ -73,16 +75,20 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="font-display text-3xl font-semibold text-ink">{event.name}</h1>
-          {isManagementView && (
+      <div className="flex flex-col gap-2">
+        <BackButton />
+        <h1 className="font-display text-3xl font-semibold text-ink">{event.name}</h1>
+        {isManagementView && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded-pill bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold uppercase text-primary">
+              {access.isOwner ? "Hosting" : access.isEditor ? "Editor" : "Viewer"}
+            </span>
             <span className="rounded-pill bg-secondary-soft px-2 py-0.5 text-[10px] font-extrabold uppercase text-ink">
               {event.status}
             </span>
-          )}
-        </div>
-        <p className="mt-1 text-sm font-semibold text-text-muted">
+          </div>
+        )}
+        <p className="text-sm font-semibold text-text-muted">
           {formatEventDateTime(event.start_at)}
           {event.location ? ` · ${event.location}` : ""}
         </p>
@@ -102,24 +108,42 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
             </Link>
           )}
 
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Link
               href={`/events/${event.id}/attendees`}
-              className="flex-1 rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
             >
               Attendees
             </Link>
             <Link
               href={`/events/${event.id}/tasks`}
-              className="flex-1 rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
             >
               Tasks
             </Link>
             <Link
               href={`/events/${event.id}/vendors`}
-              className="flex-1 rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
             >
               Vendors
+            </Link>
+            <Link
+              href={`/events/${event.id}/payments`}
+              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+            >
+              Payments
+            </Link>
+            <Link
+              href={`/events/${event.id}/budget`}
+              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+            >
+              Budget
+            </Link>
+            <Link
+              href={`/events/${event.id}/gallery`}
+              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+            >
+              Gallery
             </Link>
           </div>
 
@@ -135,16 +159,18 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
           {access.isOwner && collaborators.length > 0 && (
             <div>
               <h2 className="font-display text-lg font-semibold text-ink">Collaborators</h2>
-              <div className="mt-3 flex flex-col gap-2">
+              <StaggerList className="mt-3 flex flex-col gap-2">
                 {collaborators.map((c) => (
-                  <Card key={c.user_id} className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-text">{c.invitee?.display_name ?? "Pending user"}</p>
-                    <span className="rounded-pill bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold uppercase text-primary">
-                      {c.permission_level} · {c.status}
-                    </span>
-                  </Card>
+                  <StaggerItem key={c.user_id}>
+                    <Card className="flex items-center justify-between">
+                      <p className="text-sm font-bold text-text">{c.invitee?.display_name ?? "Pending user"}</p>
+                      <span className="rounded-pill bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold uppercase text-primary">
+                        {c.permission_level} · {c.status}
+                      </span>
+                    </Card>
+                  </StaggerItem>
                 ))}
-              </div>
+              </StaggerList>
             </div>
           )}
         </>

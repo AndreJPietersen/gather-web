@@ -37,7 +37,35 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const session = await getSessionContext();
 
   return (
-    <html lang="en" className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}>
+    // suppressHydrationWarning is React's sanctioned, shallow (attribute-only)
+    // escape hatch for exactly this case: the inline script below sets
+    // data-theme from localStorage before hydration runs, which the server
+    // (which has no access to localStorage) can never predict. It does not
+    // suppress mismatches in any child content — theme must never branch
+    // rendered JSX (only CSS variables), or a real hydration error would
+    // still surface. See theme-store.ts for the full reasoning.
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}
+    >
+      <head>
+        {/* A plain <script> tag here (tried next/script's beforeInteractive
+            strategy instead, to silence a cosmetic React devtools warning
+            that fires on notFound()/error pages — it made the flash-of-
+            wrong-theme problem this script exists to prevent come back,
+            since "beforeInteractive" only guarantees "before hydration,"
+            not "before first paint," which is what genuinely matters here.
+            Reverted; the warning is real but console-only and appears
+            solely on 404-type pages, a fair trade against silently
+            reintroducing a real visible flash on every normal page load.) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'try{var t=localStorage.getItem("gather-theme");if(t==="ocean-current"||t==="sunset-social")document.documentElement.setAttribute("data-theme",t)}catch(e){}',
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-bg font-body text-text">
         <AppShell session={session}>{children}</AppShell>
       </body>

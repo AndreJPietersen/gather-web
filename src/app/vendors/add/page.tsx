@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BackButton } from "@/components/ui/back-button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
+import { VerificationBadge } from "@/components/vendor/verification-badge";
 import { createClient } from "@/lib/supabase/server";
 import { CreateStubForm } from "./create-stub-form";
 
@@ -10,6 +13,7 @@ interface VendorSearchResult {
   id: string;
   name: string;
   primary_category: string | null;
+  description: string | null;
   verification_status: "unclaimed" | "claim_pending" | "verified";
 }
 
@@ -34,7 +38,7 @@ export default async function AddVendorPage({ searchParams }: PageProps<"/vendor
   if (query) {
     const { data } = await supabase
       .from("vendors")
-      .select("id, name, primary_category, verification_status")
+      .select("id, name, primary_category, description, verification_status")
       .ilike("name", `%${query}%`)
       .limit(10)
       .returns<VendorSearchResult[]>();
@@ -43,11 +47,14 @@ export default async function AddVendorPage({ searchParams }: PageProps<"/vendor
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div>
-        <h1 className="font-display text-3xl font-semibold text-ink">Add a Vendor</h1>
-        <p className="mt-1 text-sm font-semibold text-text-muted">
-          Search first to make sure they&apos;re not already listed.
-        </p>
+      <div className="flex flex-col gap-2">
+        <BackButton />
+        <div>
+          <h1 className="font-display text-3xl font-semibold text-ink">Add a Vendor</h1>
+          <p className="mt-1 text-sm font-semibold text-text-muted">
+            Search first to make sure they&apos;re not already listed.
+          </p>
+        </div>
       </div>
 
       <form method="get" className="flex gap-2">
@@ -59,24 +66,27 @@ export default async function AddVendorPage({ searchParams }: PageProps<"/vendor
 
       {query && (
         <>
-          <div className="flex flex-col gap-2">
+          <StaggerList className="flex flex-col gap-2">
             {results.length > 0 ? (
               results.map((vendor) => (
-                <Link key={vendor.id} href={`/vendors/${vendor.id}`}>
-                  <Card className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-text">{vendor.name}</p>
-                    <span className="rounded-pill bg-secondary-soft px-2 py-0.5 text-[10px] font-extrabold uppercase text-ink">
-                      {vendor.verification_status === "verified" ? "Verified" : "Unverified"}
-                    </span>
+                <StaggerItem key={vendor.id}>
+                  {/* Plain Card + inner Link, not LinkCard — see vendors/page.tsx
+                      for why: the badge is a real button, and a button can't
+                      nest inside a Link's <a>. */}
+                  <Card className="flex flex-wrap items-center justify-between gap-2">
+                    <Link href={`/vendors/${vendor.id}`} className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-text">{vendor.name}</p>
+                    </Link>
+                    <VerificationBadge verified={vendor.verification_status === "verified"} description={vendor.description} />
                   </Card>
-                </Link>
+                </StaggerItem>
               ))
             ) : (
               <Card>
                 <p className="text-sm font-semibold text-text-muted">No matches for &quot;{query}&quot;.</p>
               </Card>
             )}
-          </div>
+          </StaggerList>
 
           <div>
             <h2 className="font-display text-lg font-semibold text-ink">Not listed? Add them</h2>

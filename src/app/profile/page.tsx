@@ -1,8 +1,12 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ThemeSwitcher } from "@/components/theme/theme-switcher";
+import { PersonaSwitcher } from "@/components/nav/persona-switcher";
 import { getSessionContext } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { signOut, respondToEventInvite, respondToVendorInvite, saveNotificationPreferences } from "./actions";
+import { signOut, respondToEventInvite, respondToVendorInvite } from "./actions";
+import { NotificationPreferencesForm } from "./notification-preferences-form";
 
 interface PendingInvite {
   id: string;
@@ -62,17 +66,20 @@ export default async function ProfilePage() {
   }
 
   // No row exists until the first save — default to the column defaults
-  // (email on, sms/push off) rather than treating "no row" as an error.
+  // (email on, sms/push off, one-week lookahead) rather than treating "no
+  // row" as an error.
   let emailReminders = true;
+  let upcomingWindow: "on_day" | "one_day_before" | "one_week_before" = "one_week_before";
   if (session.status === "authenticated") {
     const supabase = await createClient();
     const { data: prefs } = await supabase
       .from("notification_preferences")
-      .select("email_reminders")
+      .select("email_reminders, upcoming_window")
       .eq("profile_id", session.userId)
       .maybeSingle();
     if (prefs) {
       emailReminders = prefs.email_reminders;
+      upcomingWindow = prefs.upcoming_window;
     }
   }
 
@@ -82,9 +89,21 @@ export default async function ProfilePage() {
         <h1 className="font-display text-3xl font-semibold text-ink">Profile</h1>
       </div>
 
+      <div>
+        <h2 className="font-display text-lg font-semibold text-ink">Theme</h2>
+        <Card className="mt-3">
+          <ThemeSwitcher />
+        </Card>
+      </div>
+
       {session.status === "authenticated" && (
         <Card className="flex flex-col gap-3">
-          <p className="text-sm font-bold text-text">Signed in as {session.displayName ?? "you"}.</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-bold text-text">Signed in as {session.displayName ?? "you"}.</p>
+            <Link href="/profile/edit" className="shrink-0 text-xs font-extrabold text-primary">
+              Edit Profile
+            </Link>
+          </div>
           <form action={signOut}>
             <Button type="submit" variant="secondary">
               Log out
@@ -93,27 +112,20 @@ export default async function ProfilePage() {
         </Card>
       )}
 
+      {session.status === "authenticated" && session.personas.length > 1 && (
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink">Switch Persona</h2>
+          <Card className="mt-3">
+            <PersonaSwitcher />
+          </Card>
+        </div>
+      )}
+
       {session.status === "authenticated" && (
         <div>
-          <h2 className="font-display text-lg font-semibold text-ink">Notifications</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">Notifications & Reminders</h2>
           <Card className="mt-3 flex flex-col gap-3">
-            <form action={saveNotificationPreferences} className="flex flex-col gap-3">
-              <label className="flex items-center gap-2 text-sm font-semibold text-text">
-                <input type="checkbox" name="emailReminders" defaultChecked={emailReminders} />
-                Email payment reminders
-              </label>
-              <label className="flex items-center gap-2 text-sm font-semibold text-text-muted opacity-60">
-                <input type="checkbox" disabled />
-                SMS reminders (coming soon)
-              </label>
-              <label className="flex items-center gap-2 text-sm font-semibold text-text-muted opacity-60">
-                <input type="checkbox" disabled />
-                Push reminders (coming soon)
-              </label>
-              <Button type="submit" variant="secondary">
-                Save
-              </Button>
-            </form>
+            <NotificationPreferencesForm emailReminders={emailReminders} upcomingWindow={upcomingWindow} />
           </Card>
         </div>
       )}

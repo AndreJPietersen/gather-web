@@ -10,6 +10,7 @@ const planSchema = z.object({
   totalAmount: z.coerce.number().positive("Total amount must be greater than zero"),
   depositAmount: z.coerce.number().positive().optional(),
   depositDueDate: z.string().optional().or(z.literal("")),
+  budgetItemId: z.string().uuid().optional().or(z.literal("")),
 });
 
 export interface PaymentPlanState {
@@ -23,13 +24,14 @@ export async function createPaymentPlan(_prevState: PaymentPlanState, formData: 
     totalAmount: formData.get("totalAmount"),
     depositAmount: formData.get("depositAmount") || undefined,
     depositDueDate: formData.get("depositDueDate"),
+    budgetItemId: formData.get("budgetItemId") || "",
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Please check your details." };
   }
 
-  const { eventVendorId, eventId, totalAmount, depositAmount, depositDueDate } = parsed.data;
+  const { eventVendorId, eventId, totalAmount, depositAmount, depositDueDate, budgetItemId } = parsed.data;
 
   const supabase = await createClient();
   const { error } = await supabase.from("payment_plans").insert({
@@ -37,6 +39,7 @@ export async function createPaymentPlan(_prevState: PaymentPlanState, formData: 
     total_amount: totalAmount,
     deposit_amount: depositAmount ?? null,
     deposit_due_date: depositDueDate || null,
+    budget_item_id: budgetItemId || null,
   });
 
   if (error) {
@@ -44,7 +47,38 @@ export async function createPaymentPlan(_prevState: PaymentPlanState, formData: 
   }
 
   revalidatePath(`/events/${eventId}/payments`);
+  revalidatePath(`/events/${eventId}/budget`);
   return {};
+}
+
+const planBudgetItemSchema = z.object({
+  planId: z.string().uuid(),
+  eventId: z.string().uuid(),
+  budgetItemId: z.string().uuid().optional().or(z.literal("")),
+});
+
+// Tags (or re-tags/clears) an EXISTING plan to a budget item — distinct
+// from createPaymentPlan's own optional budgetItemId field, which only
+// applies at creation time. A plan created before a budget item existed
+// (or before Budget was even a feature) would otherwise have no way back
+// to being tagged, leaving the budget page's per-line display permanently
+// showing "No payment plan yet" even though a real plan exists.
+export async function setPlanBudgetItem(formData: FormData): Promise<void> {
+  const parsed = planBudgetItemSchema.safeParse({
+    planId: formData.get("planId"),
+    eventId: formData.get("eventId"),
+    budgetItemId: formData.get("budgetItemId") || "",
+  });
+  if (!parsed.success) return;
+
+  const supabase = await createClient();
+  await supabase
+    .from("payment_plans")
+    .update({ budget_item_id: parsed.data.budgetItemId || null })
+    .eq("id", parsed.data.planId);
+
+  revalidatePath(`/events/${parsed.data.eventId}/payments`);
+  revalidatePath(`/events/${parsed.data.eventId}/budget`);
 }
 
 export async function activatePlan(formData: FormData): Promise<void> {

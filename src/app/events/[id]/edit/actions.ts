@@ -5,17 +5,21 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sastInputToIso } from "@/lib/utils";
 import type { EventFormState } from "../../event-form";
+import { resolveEventType } from "../../resolve-event-type";
 
 const schema = z.object({
   eventId: z.string().uuid(),
   name: z.string().trim().min(2, "Name is too short").max(150),
-  eventType: z.string().trim().max(60).optional().or(z.literal("")),
+  eventTypeId: z.string().optional().or(z.literal("")),
+  eventTypeOther: z.string().trim().max(60).optional().or(z.literal("")),
   startAt: z.string().min(1, "Start date/time is required"),
   endAt: z.string().optional().or(z.literal("")),
   location: z.string().trim().max(200).optional().or(z.literal("")),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   visibility: z.enum(["public", "private", "invite_only"]),
   capacity: z.coerce.number().int().min(1).max(100000).optional(),
+  budgetTotal: z.coerce.number().min(0).optional(),
+  budgetWarningPercent: z.coerce.number().int().min(1).max(100).optional(),
   publish: z.literal("true").optional(),
 });
 
@@ -23,13 +27,16 @@ export async function updateEvent(_prevState: EventFormState, formData: FormData
   const parsed = schema.safeParse({
     eventId: formData.get("eventId"),
     name: formData.get("name"),
-    eventType: formData.get("eventType"),
+    eventTypeId: formData.get("eventTypeId"),
+    eventTypeOther: formData.get("eventTypeOther") || "",
     startAt: formData.get("startAt"),
     endAt: formData.get("endAt"),
     location: formData.get("location"),
     description: formData.get("description"),
     visibility: formData.get("visibility"),
     capacity: formData.get("capacity") || undefined,
+    budgetTotal: formData.get("budgetTotal") || undefined,
+    budgetWarningPercent: formData.get("budgetWarningPercent") || undefined,
     publish: formData.get("publish") || undefined,
   });
 
@@ -37,9 +44,28 @@ export async function updateEvent(_prevState: EventFormState, formData: FormData
     return { error: parsed.error.issues[0]?.message ?? "Please check your details." };
   }
 
-  const { eventId, name, eventType, startAt, endAt, location, description, visibility, capacity, publish } = parsed.data;
+  const {
+    eventId,
+    name,
+    eventTypeId,
+    eventTypeOther,
+    startAt,
+    endAt,
+    location,
+    description,
+    visibility,
+    capacity,
+    budgetTotal,
+    budgetWarningPercent,
+    publish,
+  } = parsed.data;
 
   const supabase = await createClient();
+
+  const resolvedType = await resolveEventType(supabase, eventTypeId ?? "", eventTypeOther ?? "");
+  if (resolvedType.error) {
+    return { error: resolvedType.error };
+  }
 
   // .single() errors on zero rows — which is exactly what happens if RLS
   // (events_update_owner_or_editor) silently filtered out an unauthorized
@@ -48,13 +74,16 @@ export async function updateEvent(_prevState: EventFormState, formData: FormData
     .from("events")
     .update({
       name,
-      event_type: eventType || null,
+      event_type: resolvedType.eventType,
+      event_type_id: resolvedType.eventTypeId,
       start_at: sastInputToIso(startAt),
       end_at: endAt ? sastInputToIso(endAt) : null,
       location: location || null,
       description: description || null,
       visibility,
       capacity: capacity ?? null,
+      budget_total: budgetTotal ?? null,
+      budget_warning_percent: budgetWarningPercent ?? null,
       status: publish ? "published" : "draft",
     })
     .eq("id", eventId)

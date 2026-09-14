@@ -1,6 +1,6 @@
 # Gather Web — Admin & Support Console Architecture
 
-**Status:** Planning — no code built yet. Companion to `gather_web_architecture.md` (the consumer-facing product this console has read/write access into), `gather_web_epic_roadmap.md` (where this slots in as Phase 10), and `gather_web_user_journeys.md` (Planner/Vendor journeys this console exists to support).
+**Status:** Built and verified 2026-09-14, exactly as designed below — see `gather_web_architecture.md`'s engineering log for the "how this was actually verified" account and the one real implementation deviation worth knowing about (how `/admin`'s desktop-only shell was actually achieved). Companion to `gather_web_architecture.md` (the consumer-facing product this console has read/write access into), `gather_web_epic_roadmap.md` (where this slots in as Phase 10), and `gather_web_user_journeys.md` (Planner/Vendor journeys this console exists to support).
 
 ## Context
 
@@ -86,7 +86,9 @@ No separate admin login: an admin is just a flagged `profiles` row, so `/login` 
 
 ## UI & Navigation — a deliberate exception to "mobile-first"
 
-Every consumer-facing design principle in `gather_web_architecture.md` assumes a mobile-first, bottom-tab-bar product, because that's what Planners and Vendors actually are. Support staff using this console are not the target consumer, and dense data tables (a planner list, an event list with filters) are inherently a wide-viewport, desktop-oriented UI problem — trying to force the same mobile shell onto this would fight the content, not serve it. `/admin` gets its **own root layout** (`src/app/admin/layout.tsx`), not the consumer `AppShell`: a left sidebar (Dashboard / Planners / Vendors / Events / Cases) instead of a bottom tab bar, and no persona switcher. It should still visually read as *Gather* — the same OKLCH tokens, the same fonts — just laid out for a laptop screen instead of a phone.
+Every consumer-facing design principle in `gather_web_architecture.md` assumes a mobile-first, bottom-tab-bar product, because that's what Planners and Vendors actually are. Support staff using this console are not the target consumer, and dense data tables (a planner list, an event list with filters) are inherently a wide-viewport, desktop-oriented UI problem — trying to force the same mobile shell onto this would fight the content, not serve it. `/admin` gets its **own layout** (`src/app/admin/layout.tsx`): a left sidebar (`admin-sidebar.tsx`: Dashboard / Planners / Vendors / Events / Cases) instead of a bottom tab bar, and no persona switcher. It still visually reads as *Gather* — the same OKLCH tokens, the same fonts — just laid out for a laptop screen instead of a phone.
+
+**Implementation note**: this is *not* a second Next.js root layout via route groups (the framework-native way to get a totally independent `<html>`/`<body>`) — that would have meant moving every existing consumer route under its own route group, a large, unnecessary refactor just to add one new section. Instead, `src/components/app-shell.tsx` (already a Client Component) checks `usePathname()` and, for any `/admin` path, skips rendering the mobile tab bar/persona-switcher/safe-area padding entirely and renders `{children}` (plus the shared toast system) directly — `/admin/layout.tsx` then supplies its own sidebar + content chrome inside that. Same single root `<html>`/`<body>`/font-loading as the rest of the app (which is exactly the "same tokens, same fonts" requirement above), just a client-side branch instead of a second physical layout tree.
 
 ---
 

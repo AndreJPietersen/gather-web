@@ -1,0 +1,2 @@
+CREATE TYPE "public"."upcoming_window" AS ENUM('on_day', 'one_day_before', 'one_week_before');--> statement-breakpoint
+ALTER TABLE "notification_preferences" ADD COLUMN "upcoming_window" "upcoming_window" DEFAULT 'one_week_before' NOT NULL;

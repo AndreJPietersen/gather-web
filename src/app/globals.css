@@ -1,11 +1,33 @@
 @import "tailwindcss";
 
 /*
- * Design tokens ported verbatim from the confirmed prototype
- * (project/prototypes/gather-bold-playful.html in the eventio repo) — see
- * docs/gather_web_architecture.md's "Design system" notes. Deliberately a
- * single fixed light theme (no dark mode), matching the confirmed design —
- * this is a mobile-app-style product, not a general web page.
+ * Deliberately NOT in @layer base (contrast with the comment further down
+ * on `a`/`button`, added for the opposite reason) — this rule needs to beat
+ * Tailwind's own text-sm/text-xs utilities on every text input, select, and
+ * textarea, not lose to them the normal way. Below 16px, iOS Safari
+ * auto-zooms the whole page the instant any of these gets focus; on a
+ * client-routed app like this one, that zoom level never resets between
+ * page navigations the way a real full page load would reset it, so it can
+ * accumulate across a session and eventually leave the mobile shell wider
+ * than the now-effectively-smaller viewport — reported from a real iPhone
+ * as "keeps zooming in when I navigate, then creates a horizontal
+ * scrollbar." The shared Input component and every raw <select> in the app
+ * were all sitting at 14px (text-sm), squarely under the threshold.
+ */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/*
+ * Design tokens. "Bold Playful" below was ported verbatim from the
+ * confirmed prototype (project/prototypes/gather-bold-playful.html in the
+ * eventio repo) — see docs/gather_web_architecture.md's "Design system"
+ * notes. Two sibling themes (Ocean Current, Sunset Social) were designed
+ * from scratch to match its shape (same relative lightness/chroma, same
+ * radii/fonts) and live below as [data-theme] overrides — this is still a
+ * fixed set of 3 named palettes, not a light/dark system.
  */
 :root {
   --color-bg: oklch(96% 0.015 290);
@@ -16,10 +38,53 @@
   --color-border: oklch(90% 0.02 290);
   --color-primary: oklch(60% 0.19 325);
   --color-primary-soft: oklch(91% 0.05 325);
+  --color-primary-glow: oklch(64% 0.17 355);
   --color-secondary: oklch(80% 0.16 90);
   --color-secondary-soft: oklch(93% 0.06 90);
   --color-success: oklch(72% 0.15 150);
   --color-success-soft: oklch(92% 0.05 150);
+}
+
+/*
+ * Two additional themes, same token shape as :root above (a per-device
+ * preference, never server/session-derived — see theme-store.ts for why
+ * that made a plain Zustand singleton safe here, unlike persona-store.ts).
+ * `:root[data-theme="…"]` (specificity 0,0,2,0) reliably outranks the bare
+ * `:root` block above regardless of source order. These only ever declare
+ * --color-* custom properties, never a real rendered property on a bare
+ * element selector, so they can't reintroduce the @layer bug documented
+ * below — there's nothing in @layer utilities that redeclares these vars.
+ */
+:root[data-theme="ocean-current"] {
+  --color-bg: oklch(96% 0.012 230);
+  --color-surface: oklch(99% 0.005 230);
+  --color-ink: oklch(21% 0.03 240);
+  --color-text: oklch(23% 0.028 240);
+  --color-text-muted: oklch(53% 0.02 235);
+  --color-border: oklch(89% 0.02 230);
+  --color-primary: oklch(58% 0.17 235);
+  --color-primary-soft: oklch(91% 0.05 235);
+  --color-primary-glow: oklch(70% 0.15 250);
+  --color-secondary: oklch(78% 0.15 55);
+  --color-secondary-soft: oklch(93% 0.06 55);
+  --color-success: oklch(72% 0.14 165);
+  --color-success-soft: oklch(92% 0.05 165);
+}
+
+:root[data-theme="sunset-social"] {
+  --color-bg: oklch(96% 0.016 40);
+  --color-surface: oklch(99% 0.007 40);
+  --color-ink: oklch(23% 0.035 30);
+  --color-text: oklch(25% 0.032 30);
+  --color-text-muted: oklch(54% 0.022 35);
+  --color-border: oklch(90% 0.022 40);
+  --color-primary: oklch(62% 0.19 35);
+  --color-primary-soft: oklch(91% 0.06 35);
+  --color-primary-glow: oklch(74% 0.16 55);
+  --color-secondary: oklch(72% 0.17 350);
+  --color-secondary-soft: oklch(92% 0.06 350);
+  --color-success: oklch(74% 0.15 145);
+  --color-success-soft: oklch(92% 0.05 145);
 }
 
 @theme inline {
@@ -31,6 +96,7 @@
   --color-border: var(--color-border);
   --color-primary: var(--color-primary);
   --color-primary-soft: var(--color-primary-soft);
+  --color-primary-glow: var(--color-primary-glow);
   --color-secondary: var(--color-secondary);
   --color-secondary-soft: var(--color-secondary-soft);
   --color-success: var(--color-success);
@@ -46,6 +112,35 @@
    * per component rather than forced into one token that doesn't fit. */
   --radius-pill: 999px;
   --radius-field: 16px;
+
+  --animate-shimmer: shimmer 4s linear infinite;
+  --animate-glow-pulse: glow-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 250% 0;
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer,
+  .animate-glow-pulse {
+    animation: none !important;
+  }
 }
 
 /*
@@ -69,5 +164,16 @@
 
   button {
     cursor: pointer;
+  }
+
+  /* A safety net, not the fix for the iOS zoom/scrollbar issue itself (that
+     was the font-size rule above) — this just guarantees that if anything
+     anywhere ever renders wider than the viewport (a stray fixed width, a
+     zoomed-in state some other device produces some other way), it clips
+     instead of opening a horizontal scrollbar the mobile shell was never
+     designed to have. */
+  html,
+  body {
+    overflow-x: hidden;
   }
 }

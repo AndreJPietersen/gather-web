@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { usePersonaStore } from "@/components/providers/persona-provider";
 
@@ -46,12 +47,16 @@ function TabBarShell({ tabs }: { tabs: Tab[] }) {
           <Link
             key={tab.href}
             href={tab.href}
-            className={cn(
-              "rounded-pill px-4 py-2 text-xs font-extrabold transition-opacity",
-              isActive ? "bg-primary-soft text-primary" : "text-text-muted",
-            )}
+            className="relative rounded-pill px-4 py-2 text-xs font-extrabold"
           >
-            {tab.label}
+            {isActive && (
+              <motion.span
+                layoutId="active-tab-pill"
+                className="absolute inset-0 rounded-pill bg-primary-soft"
+                transition={{ type: "spring", stiffness: 500, damping: 35 }}
+              />
+            )}
+            <span className={cn("relative z-10", isActive ? "text-primary" : "text-text-muted")}>{tab.label}</span>
           </Link>
         );
       })}

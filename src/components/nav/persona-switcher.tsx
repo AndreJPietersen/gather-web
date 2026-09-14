@@ -10,7 +10,7 @@ export function PersonaSwitcher() {
   const setActivePersona = usePersonaStore((state) => state.setActivePersona);
 
   return (
-    <div className="flex gap-2 overflow-x-auto px-4 pt-3">
+    <div className="flex flex-wrap gap-2">
       {personas.map((persona) => {
         const isActive = personaKey(persona) === personaKey(activePersona);
         const text = persona.type === "planner" ? "Planner" : persona.vendorName;

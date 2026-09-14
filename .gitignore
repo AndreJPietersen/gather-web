@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Andre's personal learning notes — not part of the shipped project, never committed.
 /teachAndre
+
+# Local dev/test account credentials — real (if throwaway) secrets, never committed.
+/TESTING.md
