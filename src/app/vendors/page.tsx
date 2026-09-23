@@ -1,11 +1,15 @@
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
+import { Card, LinkCard } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { VerificationBadge } from "@/components/vendor/verification-badge";
+import { VendorAvatar } from "@/components/vendor/vendor-avatar";
+import { VendorRatingBadge } from "@/components/vendor/vendor-rating-badge";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
+import { rankVendors } from "@/lib/vendor-ranking";
+import { getVendorRatingSummaries } from "@/lib/vendor-reviews";
 
 interface VendorRow {
   id: string;
@@ -13,35 +17,32 @@ interface VendorRow {
   primary_category: string | null;
   description: string | null;
   verification_status: "unclaimed" | "claim_pending" | "verified";
+  is_featured: boolean;
+  logo_path: string | null;
+  created_at: string;
 }
 
-// The real guest-browsable vendor directory. Phase 6 widened this to show
-// every vendor (not just verified ones), each badged by status — the
-// crowd-sourced Vendor Directory Bootstrapping workflow only works if
-// unclaimed stubs are actually visible in the directory, not hidden until
-// claimed. Category pills + keyword search, both server-rendered via plain
-// GET search params (no client JS needed for search itself).
+// The real guest-browsable vendor directory — redesigned into an actual
+// marketplace (a Featured row, photo-forward cards) rather than a plain
+// text-row list, off a design canvas Andre picked. Every vendor (not just
+// verified ones) still shows, each badged by status — the crowd-sourced
+// Vendor Directory Bootstrapping workflow only works if unclaimed stubs
+// stay visible, not hidden until claimed. Category pills + keyword search,
+// both server-rendered via plain GET search params (no client JS needed for
+// search itself). The old manual Name A→Z sort toggle is gone deliberately
+// — it directly fought the new point of this page, letting vendors compete
+// for a better spot via rankVendors (Featured, then profile completeness,
+// then verification) instead of a passive alphabetical order.
 export default async function VendorsPage({ searchParams }: PageProps<"/vendors">) {
-  const { q, category, sort } = await searchParams;
+  const { q, category } = await searchParams;
   const query = typeof q === "string" ? q : "";
   const activeCategory = typeof category === "string" ? category : "";
-  // Name-ascending (A→Z) was already the fixed default — this just makes
-  // the direction a real, toggleable choice instead of a silent one. "asc"
-  // stays paramless so existing bookmarked/shared search+category URLs
-  // keep meaning what they already meant.
-  const sortDirection: "asc" | "desc" = sort === "desc" ? "desc" : "asc";
 
-  // Builds a /vendors URL carrying whichever of q/category/sort are active,
-  // with just one overridden — so toggling sort keeps the current search
-  // and category, and picking a category keeps the current sort, instead
-  // of each control silently discarding the others' state.
-  function buildHref(overrides: { category?: string; sort?: "asc" | "desc" }) {
+  function buildHref(overrides: { category?: string }) {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
     const nextCategory = overrides.category !== undefined ? overrides.category : activeCategory;
     if (nextCategory) params.set("category", nextCategory);
-    const nextSort = overrides.sort ?? sortDirection;
-    if (nextSort === "desc") params.set("sort", "desc");
     const qs = params.toString();
     return qs ? `/vendors?${qs}` : "/vendors";
   }
@@ -58,14 +59,30 @@ export default async function VendorsPage({ searchParams }: PageProps<"/vendors"
     .returns<{ primary_category: string }[]>();
   const categories = Array.from(new Set((categoryRows ?? []).map((row) => row.primary_category))).sort();
 
-  let vendorsQuery = supabase.from("vendors").select("id, name, primary_category, description, verification_status");
+  let vendorsQuery = supabase
+    .from("vendors")
+    .select("id, name, primary_category, description, verification_status, is_featured, logo_path, created_at");
   if (activeCategory) {
     vendorsQuery = vendorsQuery.eq("primary_category", activeCategory);
   }
   if (query) {
     vendorsQuery = vendorsQuery.ilike("name", `%${query}%`);
   }
-  const { data: vendors } = await vendorsQuery.order("name", { ascending: sortDirection === "asc" }).returns<VendorRow[]>();
+  const { data: vendorRows } = await vendorsQuery.returns<VendorRow[]>();
+
+  const ranked = await rankVendors(supabase, vendorRows ?? []);
+  const logoUrls = new Map(
+    ranked
+      .filter((v) => v.logo_path)
+      .map((v) => [v.id, supabase.storage.from("vendor-logos").getPublicUrl(v.logo_path!).data.publicUrl]),
+  );
+  const ratingSummaries = await getVendorRatingSummaries(
+    supabase,
+    ranked.map((v) => v.id),
+  );
+
+  const featured = ranked.filter((v) => v.is_featured);
+  const rest = ranked.filter((v) => !v.is_featured);
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
@@ -84,18 +101,10 @@ export default async function VendorsPage({ searchParams }: PageProps<"/vendors"
       <form method="get" className="flex gap-2">
         <Input name="q" defaultValue={query} placeholder="Search vendors" className="flex-1" />
         {activeCategory && <input type="hidden" name="category" value={activeCategory} />}
-        {sortDirection === "desc" && <input type="hidden" name="sort" value="desc" />}
         <Button type="submit" variant="secondary">
           Search
         </Button>
       </form>
-
-      <Link
-        href={buildHref({ sort: sortDirection === "asc" ? "desc" : "asc" })}
-        className="self-start rounded-pill border-2 border-border bg-surface px-2.5 py-1 text-[11px] font-extrabold text-text-muted"
-      >
-        Name {sortDirection === "asc" ? "A → Z" : "Z → A"}
-      </Link>
 
       {categories.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -123,33 +132,98 @@ export default async function VendorsPage({ searchParams }: PageProps<"/vendors"
         </div>
       )}
 
-      <StaggerList className="flex flex-col gap-3">
-        {vendors && vendors.length > 0 ? (
-          vendors.map((vendor) => (
-            <StaggerItem key={vendor.id}>
-              {/* A plain Card, not LinkCard: the verification badge is a
-                  real interactive button (tap to expand/collapse), and
-                  nesting a <button> inside a <Link>'s <a> is invalid HTML —
-                  so the vendor name/category is its own inner Link instead
-                  of the whole row being one, letting the badge sit beside
-                  it as a sibling. */}
-              <Card className="flex flex-wrap items-center justify-between gap-2">
-                <Link href={`/vendors/${vendor.id}`} className="min-w-0 flex-1">
-                  <p className="text-sm font-extrabold text-text">{vendor.name}</p>
-                  {vendor.primary_category && (
-                    <p className="text-xs font-semibold text-text-muted">{vendor.primary_category}</p>
+      {featured.length > 0 && (
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center gap-1.5">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--color-secondary)" stroke="var(--color-secondary)" strokeWidth="1.5" strokeLinejoin="round">
+              <polygon points="12 2 15.09 8.63 22 9.24 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.24 8.91 8.63 12 2"></polygon>
+            </svg>
+            <h2 className="font-display text-base font-semibold text-ink">Featured</h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {featured.map((vendor) => (
+              <LinkCard
+                key={vendor.id}
+                href={`/vendors/${vendor.id}`}
+                className="flex w-[210px] shrink-0 flex-col gap-2.5 rounded-[24px] p-4 text-white"
+                style={{ background: `linear-gradient(135deg, oklch(62% 0.18 340), oklch(66% 0.16 5))` }}
+              >
+                <span className="flex w-fit items-center gap-1 rounded-pill bg-white/90 px-2 py-0.5 text-[9px] font-extrabold uppercase text-ink">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--color-ink)">
+                    <polygon points="12 2 15.09 8.63 22 9.24 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.24 8.91 8.63 12 2"></polygon>
+                  </svg>
+                  Featured
+                </span>
+                <VendorAvatar
+                  name={vendor.name}
+                  category={vendor.primary_category}
+                  verified={vendor.verification_status === "verified"}
+                  logoUrl={logoUrls.get(vendor.id) ?? null}
+                  size={52}
+                  radius={16}
+                />
+                <div>
+                  <p className="text-[15px] font-extrabold leading-tight">{vendor.name}</p>
+                  {vendor.primary_category && <p className="mt-0.5 text-[11px] font-bold text-white/85">{vendor.primary_category}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  {vendor.verification_status === "verified" && (
+                    <div className="flex items-center gap-1">
+                      <span className="flex h-4 w-4 items-center justify-center rounded-pill bg-success">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </span>
+                      <span className="text-[10px] font-extrabold uppercase text-white/90">Verified</span>
+                    </div>
                   )}
-                </Link>
-                <VerificationBadge verified={vendor.verification_status === "verified"} description={vendor.description} />
-              </Card>
-            </StaggerItem>
-          ))
-        ) : (
-          <Card>
-            <p className="text-sm font-semibold text-text-muted">No vendors match yet — check back soon.</p>
-          </Card>
-        )}
-      </StaggerList>
+                  {ratingSummaries.has(vendor.id) && (
+                    <VendorRatingBadge average={ratingSummaries.get(vendor.id)!.average} count={ratingSummaries.get(vendor.id)!.count} light />
+                  )}
+                </div>
+              </LinkCard>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2.5">
+        {featured.length > 0 && <h2 className="font-display text-base font-semibold text-ink">All Vendors</h2>}
+        <StaggerList className="grid grid-cols-2 gap-2.5">
+          {rest.length > 0 || featured.length > 0 ? (
+            rest.map((vendor) => (
+              <StaggerItem key={vendor.id}>
+                <LinkCard href={`/vendors/${vendor.id}`} className="flex flex-col gap-2 p-3.5">
+                  <VendorAvatar
+                    name={vendor.name}
+                    category={vendor.primary_category}
+                    verified={vendor.verification_status === "verified"}
+                    logoUrl={logoUrls.get(vendor.id) ?? null}
+                    size={44}
+                    radius={14}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-extrabold text-text">{vendor.name}</p>
+                    {vendor.primary_category && (
+                      <p className="truncate text-[11px] font-bold text-text-muted">{vendor.primary_category}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <VerificationBadge verified={vendor.verification_status === "verified"} description={vendor.description} />
+                    {ratingSummaries.has(vendor.id) && (
+                      <VendorRatingBadge average={ratingSummaries.get(vendor.id)!.average} count={ratingSummaries.get(vendor.id)!.count} />
+                    )}
+                  </div>
+                </LinkCard>
+              </StaggerItem>
+            ))
+          ) : (
+            <Card className="col-span-2">
+              <p className="text-sm font-semibold text-text-muted">No vendors match yet — check back soon.</p>
+            </Card>
+          )}
+        </StaggerList>
+      </div>
     </main>
   );
 }

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -120,4 +121,105 @@ export async function declineQuote(formData: FormData): Promise<void> {
   await supabase.from("vendor_quotes").update({ status: "declined" }).eq("id", quoteId).eq("status", "sent");
 
   revalidatePath(`/events/${eventId}/vendors/${eventVendorId}`);
+}
+
+// Shared by this file's own removeVendorFromEvent and, cross-imported, by
+// budget/actions.ts's removeBudgetItem/unlinkVendorFromBudgetItem — one
+// place for "does this vendor booking have a paid installment," the rule
+// all three removal points need to enforce. Two-hop flat query (payment_
+// plans -> payment_installments), same shape as this app's other
+// aggregation helpers (e.g. the chat feature's getUnreadCounts), not an
+// RPC. Checks for ANY paid installment, not the whole plan being settled —
+// one paid installment among several pending ones is still real money that
+// needs to be actively reversed (marked refunded) before the link can go
+// away, regardless of what else on the plan hasn't been paid yet.
+export async function hasPaidInstallment(eventVendorId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: plans } = await supabase.from("payment_plans").select("id").eq("event_vendor_id", eventVendorId);
+  const planIds = (plans ?? []).map((p) => p.id);
+  if (planIds.length === 0) return false;
+
+  const { count } = await supabase
+    .from("payment_installments")
+    .select("id", { count: "exact", head: true })
+    .in("payment_plan_id", planIds)
+    .eq("status", "paid");
+  return (count ?? 0) > 0;
+}
+
+export interface RemoveVendorState {
+  error?: string;
+}
+
+const removeVendorSchema = z.object({
+  eventId: z.string().uuid(),
+  eventVendorId: z.string().uuid(),
+});
+
+// No DELETE policy exists on event_vendors itself (deliberately — a real
+// delete on this row is what the vendor_team_members/event_vendor_messages
+// chat history genuinely needs to survive). "Remove" is a soft-remove:
+// event_vendors.status -> 'rejected', already a valid enum value that
+// nothing had ever actually written before this. The vendors list page
+// filters rejected bookings out of its default view — that's what makes
+// this actually read as "removed," not this action itself; direct links
+// (this page, chat) still work for a removed booking, preserving its chat
+// history.
+//
+// Its payment plan and any budget-item link are cleaned up for real,
+// though (Andre's own ask, found by testing: a removed vendor's plan kept
+// showing up as a phantom duplicate in the Payments picker, and the vendor
+// stayed shown as "linked" on its old Budget line). Safe to actually
+// delete the plan here specifically because hasPaidInstallment above
+// already blocked removal entirely while any installment on it is still
+// actually paid — by the time this runs, the plan can only hold pending/
+// cancelled/refunded installments, nothing left worth preserving as an
+// orphaned "removed vendor's plan." Deleting payment_plans cascades to its
+// payment_installments automatically (onDelete: "cascade" in schema.ts) —
+// an FK cascade bypasses RLS on the child table entirely, so no separate
+// policy was needed there, only the new payment_plans_delete_event_editor
+// policy on the plan itself.
+export async function removeVendorFromEvent(_prevState: RemoveVendorState, formData: FormData): Promise<RemoveVendorState> {
+  const parsed = removeVendorSchema.safeParse({
+    eventId: formData.get("eventId"),
+    eventVendorId: formData.get("eventVendorId"),
+  });
+  if (!parsed.success) {
+    return { error: "Something went wrong. Please try again." };
+  }
+  const { eventId, eventVendorId } = parsed.data;
+
+  if (await hasPaidInstallment(eventVendorId)) {
+    return { error: "Can't remove — this vendor has a paid installment. Mark it refunded first." };
+  }
+
+  const supabase = await createClient();
+
+  const { error: planDeleteError } = await supabase.from("payment_plans").delete().eq("event_vendor_id", eventVendorId);
+  if (planDeleteError) {
+    return { error: "Something went wrong removing this vendor. Please try again." };
+  }
+
+  const { error: unlinkError } = await supabase
+    .from("budget_items")
+    .update({ event_vendor_id: null })
+    .eq("event_vendor_id", eventVendorId);
+  if (unlinkError) {
+    return { error: "Something went wrong removing this vendor. Please try again." };
+  }
+
+  const { error } = await supabase.from("event_vendors").update({ status: "rejected" }).eq("id", eventVendorId);
+  if (error) {
+    return { error: "Something went wrong removing this vendor. Please try again." };
+  }
+
+  revalidatePath(`/events/${eventId}/vendors`);
+  revalidatePath(`/events/${eventId}/budget`);
+  revalidatePath(`/events/${eventId}/payments`);
+  // A removed booking has nothing left on this page worth showing (it's
+  // not going to reappear in an "undo" state), so navigate straight back
+  // to the list rather than leaving the client to render some leftover
+  // "removed" state on a detail page for a vendor no longer active on
+  // this event — the list itself already excludes rejected bookings.
+  redirect(`/events/${eventId}/vendors`);
 }

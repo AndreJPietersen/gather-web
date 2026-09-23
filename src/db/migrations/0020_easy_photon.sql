@@ -1,0 +1,1 @@
+ALTER TABLE "payment_installments" ADD COLUMN "proof_of_payment_path" text;

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { getSessionContext } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { EditProfileForm } from "./edit-profile-form";
@@ -21,10 +21,7 @@ export default async function EditProfilePage() {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <h1 className="font-display text-3xl font-semibold text-ink">Edit Profile</h1>
-      </div>
+      <PageHeader title="Edit Profile" />
       <EditProfileForm name={profile?.display_name ?? ""} phone={profile?.phone ?? ""} />
     </main>
   );

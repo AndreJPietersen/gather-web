@@ -99,6 +99,111 @@
       "when": 1789412645428,
       "tag": "0013_nervous_chimera",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789456171850,
+      "tag": "0014_legal_sheva_callister",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789456887602,
+      "tag": "0015_sad_champions",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789530362043,
+      "tag": "0016_nebulous_scarlet_spider",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789535235523,
+      "tag": "0017_polite_doomsday",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789535687957,
+      "tag": "0018_glossy_shard",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789536631093,
+      "tag": "0019_stiff_madame_web",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789539197295,
+      "tag": "0020_easy_photon",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789541457819,
+      "tag": "0021_skinny_maria_hill",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1789549717073,
+      "tag": "0022_flippant_eternity",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1789551782626,
+      "tag": "0023_deep_sunspot",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789566463704,
+      "tag": "0024_stiff_lady_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789568404007,
+      "tag": "0025_concerned_cloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789570267578,
+      "tag": "0026_spotty_mysterio",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790016938624,
+      "tag": "0027_known_kulan_gath",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1790018822403,
+      "tag": "0028_real_domino",
+      "breakpoints": true
     }
   ]
 }

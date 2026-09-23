@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
@@ -60,13 +60,12 @@ export default async function VendorTeamPage({ params }: PageProps<"/vendor/[ven
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <div>
-          <h1 className="font-display text-3xl font-semibold text-ink">Team</h1>
-          <p className="mt-1 text-sm font-semibold text-text-muted">{vendor.name}</p>
-        </div>
-      </div>
+      <PageHeader title="Team">
+        <p className="text-sm font-semibold text-text-muted">{vendor.name}</p>
+        <p className="text-xs font-semibold text-text-muted">
+          Managers can edit the business and send quotes; Staff can only view bookings.
+        </p>
+      </PageHeader>
 
       <StaggerList className="flex flex-col gap-2">
         {(members ?? []).map((member) => (

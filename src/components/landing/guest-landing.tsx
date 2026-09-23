@@ -2,10 +2,13 @@
 
 import { CalendarCheck, PartyPopper, Handshake } from "lucide-react";
 import { motion } from "motion/react";
+import Link from "next/link";
 import { LinkButton } from "@/components/ui/button";
 import { LinkCard } from "@/components/ui/card";
+import { VendorAvatar } from "@/components/vendor/vendor-avatar";
+import { VendorRatingBadge } from "@/components/vendor/vendor-rating-badge";
 import { formatEventDateTime } from "@/lib/utils";
-import { categoryGradient } from "@/lib/vendor-gradient";
+import type { RatingSummary } from "@/lib/vendor-reviews";
 
 interface PublicEvent {
   id: string;
@@ -15,10 +18,12 @@ interface PublicEvent {
   location: string | null;
 }
 
-interface VerifiedVendor {
+interface TeaserVendor {
   id: string;
   name: string;
   primary_category: string | null;
+  is_featured: boolean;
+  logo_path: string | null;
 }
 
 const FEATURES = [
@@ -57,7 +62,17 @@ function HeroTexture() {
   );
 }
 
-export function GuestLanding({ events, vendors }: { events: PublicEvent[] | null; vendors: VerifiedVendor[] | null }) {
+export function GuestLanding({
+  events,
+  vendors,
+  vendorLogoUrls,
+  vendorRatingSummaries,
+}: {
+  events: PublicEvent[] | null;
+  vendors: TeaserVendor[] | null;
+  vendorLogoUrls: Map<string, string>;
+  vendorRatingSummaries: Map<string, RatingSummary>;
+}) {
   return (
     <div className="flex flex-col gap-10 pb-4">
       <motion.section
@@ -127,18 +142,46 @@ export function GuestLanding({ events, vendors }: { events: PublicEvent[] | null
       </section>
 
       <section className="flex flex-col gap-3 pl-6">
-        <h2 className="font-display text-lg font-semibold text-ink pr-6">Vendors near you</h2>
+        <div className="flex items-baseline justify-between pr-6">
+          <h2 className="font-display text-lg font-semibold text-ink">Vendors near you</h2>
+          <Link href="/vendors" className="flex items-center gap-0.5 text-xs font-extrabold text-primary">
+            See all
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </Link>
+        </div>
         {vendors && vendors.length > 0 ? (
           <div className="flex gap-3 overflow-x-auto pb-2 pr-6">
             {vendors.map((vendor) => (
               <LinkCard
                 key={vendor.id}
                 href={`/vendors/${vendor.id}`}
-                className="flex w-40 shrink-0 flex-col justify-end gap-1 rounded-[26px] p-4 text-white"
-                style={{ background: categoryGradient(vendor.primary_category, true) }}
+                className="flex w-40 shrink-0 flex-col gap-2 rounded-[26px] p-4"
               >
-                <p className="text-sm font-extrabold">{vendor.name}</p>
-                {vendor.primary_category && <p className="text-xs font-semibold text-white/80">{vendor.primary_category}</p>}
+                {vendor.is_featured && (
+                  <span className="flex w-fit items-center gap-1 rounded-pill bg-secondary px-2 py-0.5 text-[9px] font-extrabold uppercase text-ink">
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--color-ink)">
+                      <polygon points="12 2 15.09 8.63 22 9.24 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.24 8.91 8.63 12 2"></polygon>
+                    </svg>
+                    Featured
+                  </span>
+                )}
+                <VendorAvatar
+                  name={vendor.name}
+                  category={vendor.primary_category}
+                  verified
+                  logoUrl={vendorLogoUrls.get(vendor.id) ?? null}
+                  size={44}
+                  radius={14}
+                />
+                <div>
+                  <p className="text-sm font-extrabold text-text">{vendor.name}</p>
+                  {vendor.primary_category && <p className="text-xs font-semibold text-text-muted">{vendor.primary_category}</p>}
+                </div>
+                {vendorRatingSummaries.has(vendor.id) && (
+                  <VendorRatingBadge average={vendorRatingSummaries.get(vendor.id)!.average} count={vendorRatingSummaries.get(vendor.id)!.count} />
+                )}
               </LinkCard>
             ))}
           </div>
@@ -146,6 +189,13 @@ export function GuestLanding({ events, vendors }: { events: PublicEvent[] | null
           <p className="pr-6 text-sm font-semibold text-text-muted">No verified vendors yet — check back soon.</p>
         )}
       </section>
+
+      <p className="px-6 text-center text-xs font-semibold text-text-muted">
+        Have questions before you sign up?{" "}
+        <Link href="/faq" className="font-extrabold text-primary">
+          Check our FAQ
+        </Link>
+      </p>
     </div>
   );
 }

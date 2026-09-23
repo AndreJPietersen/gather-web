@@ -1,55 +1,42 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { X } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
-import { formatEventDateTime, formatZAR } from "@/lib/utils";
+import { isInstallmentOverdue } from "@/lib/upcoming";
 import { getVendorAccess } from "../access";
-import { SubmitQuoteForm } from "./submit-quote-form";
-import { AddServiceForm } from "./add-service-form";
-import { AddSocialLinkForm } from "./add-social-link-form";
-import { AddGalleryImageForm } from "./add-gallery-image-form";
-import { MAX_GALLERY_IMAGES } from "@/lib/gallery-limits";
-import { removeService, removeSocialLink, removeVendorGalleryImage } from "./actions";
+import { getVendorRatingSummary, getVendorReviews } from "@/lib/vendor-reviews";
+import { ProfileCompletionNudge } from "./profile-completion-nudge";
 
-interface BookingRow {
-  id: string;
-  status: string;
-  confirmed: boolean;
-  events: { name: string; start_at: string } | null;
-  vendor_quotes: { id: string; amount: string; status: string }[];
-}
-
-interface ServiceRow {
+interface VendorRow {
   id: string;
   name: string;
+  verification_status: "unclaimed" | "claim_pending" | "verified";
+  is_featured: boolean;
+  logo_path: string | null;
   description: string | null;
-  category_id: string | null;
-  service_categories: { name: string } | null;
 }
 
-interface SocialLinkRow {
+interface BookingQuoteRow {
   id: string;
-  platform: string;
-  url: string;
+  vendor_quotes: { id: string }[];
 }
 
-interface GalleryImageRow {
-  id: string;
-  storage_path: string;
-  caption: string | null;
-}
-
+// Replaces what used to be one long stacked page (profile checklist +
+// bookings list + services list + social links list + gallery grid, all
+// inline) — Andre: "it's getting long and cluttered." Same launch-grid
+// pattern as the event page's own nav grid (src/app/events/[id]/page.tsx):
+// a 2-column grid of tint tiles cycling primary/secondary/success-soft,
+// text-ink (not text-secondary) on the yellow tiles for the same contrast
+// reason that grid's own comment documents, each tile its own screen
+// instead of a section sharing this page's scroll.
 export default async function VendorDashboardPage({ params }: PageProps<"/vendor/[vendorId]/dashboard">) {
   const { vendorId } = await params;
   const supabase = await createClient();
 
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("id, name, verification_status")
+    .select("id, name, verification_status, is_featured, logo_path, description")
     .eq("id", vendorId)
-    .maybeSingle<{ id: string; name: string; verification_status: "unclaimed" | "claim_pending" | "verified" }>();
+    .maybeSingle<VendorRow>();
   if (!vendor) {
     notFound();
   }
@@ -61,229 +48,188 @@ export default async function VendorDashboardPage({ params }: PageProps<"/vendor
   if (!access.isTeamMember) {
     notFound();
   }
-
   const canQuote = access.role === "owner" || access.role === "manager";
 
-  // event_vendors_select_event_side_or_vendor_side's is_vendor_team_member
-  // branch is a live join, not a snapshot — a teammate added after this
-  // booking already existed still sees it here, the direct fix for the
-  // documented Salesforce limitation.
-  const { data: bookings } = await supabase
-    .from("event_vendors")
-    .select("id, status, confirmed, events(name, start_at), vendor_quotes(id, amount, status)")
-    .eq("vendor_id", vendorId)
-    .returns<BookingRow[]>();
+  const [{ data: bookings }, { data: galleryImages }, { data: services }, { data: socialLinks }, ratingSummary, reviews] =
+    await Promise.all([
+      supabase.from("event_vendors").select("id, vendor_quotes(id)").eq("vendor_id", vendorId).returns<BookingQuoteRow[]>(),
+      supabase.from("vendor_gallery_images").select("id").eq("vendor_id", vendorId),
+      supabase.from("vendor_services").select("id").eq("vendor_id", vendorId),
+      supabase.from("vendor_social_links").select("id").eq("vendor_id", vendorId),
+      getVendorRatingSummary(supabase, vendorId),
+      getVendorReviews(supabase, vendorId),
+    ]);
 
-  const [{ data: services }, { data: serviceCategories }] = await Promise.all([
-    supabase
-      .from("vendor_services")
-      .select("id, name, description, category_id, service_categories(name)")
-      .eq("vendor_id", vendorId)
-      .returns<ServiceRow[]>(),
-    supabase.from("service_categories").select("id, name").eq("is_active", true).order("name"),
-  ]);
+  // A booking with no quote submitted yet needs the vendor's attention —
+  // the same "something actually urgent" bar the event page's own Payments
+  // dot sets, not every merely-unconfirmed booking.
+  const needsQuote = (bookings ?? []).some((b) => b.vendor_quotes.length === 0);
 
-  const isVerified = vendor.verification_status === "verified";
+  // Same three-hop shape (event_vendors -> payment_plans -> installments)
+  // and the same isInstallmentOverdue check the event page's own
+  // hasOverduePayment already uses, just scoped by vendor_id instead of
+  // event_id.
+  let hasOverduePayment = false;
+  const eventVendorIds = (bookings ?? []).map((b) => b.id);
+  if (eventVendorIds.length > 0) {
+    const { data: planIds } = await supabase.from("payment_plans").select("id").in("event_vendor_id", eventVendorIds);
+    const pIds = (planIds ?? []).map((p) => p.id);
+    if (pIds.length > 0) {
+      const { data: pendingInstallments } = await supabase
+        .from("payment_installments")
+        .select("status, due_date")
+        .eq("status", "pending")
+        .in("payment_plan_id", pIds)
+        .returns<{ status: string; due_date: string }[]>();
+      hasOverduePayment = (pendingInstallments ?? []).some((i) => isInstallmentOverdue(i.status, i.due_date));
+    }
+  }
 
-  const [{ data: socialLinks }, { data: galleryImages }] = await Promise.all([
-    supabase.from("vendor_social_links").select("id, platform, url").eq("vendor_id", vendorId).returns<SocialLinkRow[]>(),
-    supabase
-      .from("vendor_gallery_images")
-      .select("id, storage_path, caption")
-      .eq("vendor_id", vendorId)
-      .order("created_at", { ascending: false })
-      .returns<GalleryImageRow[]>(),
-  ]);
+  const unrepliedReviewCount = reviews.filter((r) => !r.reply).length;
+
+  const logoUrl = vendor.logo_path ? supabase.storage.from("vendor-logos").getPublicUrl(vendor.logo_path).data.publicUrl : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="font-display text-3xl font-semibold text-ink">{vendor.name}</h1>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          {canQuote && (
-            <Link href={`/vendor/${vendorId}/edit`} className="text-xs font-extrabold text-primary">
-              Edit Business
-            </Link>
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-5 px-6 py-10">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <h1 className="flex-1 font-display text-3xl font-semibold leading-[1.15] text-ink">{vendor.name}</h1>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a Storage public URL isn't a static/optimizable asset next/image can source-check at build time.
+            <img src={logoUrl} alt="" className="h-11 w-11 shrink-0 rounded-[14px] object-cover" />
+          ) : (
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[linear-gradient(135deg,var(--color-primary-soft),var(--color-secondary-soft))] font-display text-[15px] font-semibold text-primary">
+              {vendor.name.slice(0, 2).toUpperCase()}
+            </div>
           )}
-          <Link href={`/vendor/${vendorId}/team`} className="text-xs font-extrabold text-primary">
-            Manage Team
-          </Link>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span
+            className={`flex h-[22px] w-[22px] items-center justify-center rounded-pill ${vendor.verification_status === "verified" ? "bg-success-soft" : "bg-secondary-soft"}`}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </span>
+          {vendor.is_featured && (
+            <span className="flex items-center gap-1 rounded-pill bg-secondary px-2 py-0.5 text-[10px] font-extrabold uppercase text-ink">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--color-ink)">
+                <polygon points="12 2 15.09 8.63 22 9.24 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.24 8.91 8.63 12 2"></polygon>
+              </svg>
+              Featured
+            </span>
+          )}
+          {ratingSummary.count > 0 && (
+            <span className="text-xs font-bold text-text-muted">
+              {ratingSummary.average.toFixed(1)} ★ ({ratingSummary.count})
+            </span>
+          )}
         </div>
       </div>
 
-      <div>
-        <h2 className="font-display text-lg font-semibold text-ink">Bookings</h2>
-        <StaggerList className="mt-3 flex flex-col gap-2">
-          {bookings && bookings.length > 0 ? (
-            bookings.map((booking) => (
-              <StaggerItem key={booking.id}>
-                <Card className="flex flex-col gap-1">
-                  <p className="text-sm font-extrabold text-text">{booking.events?.name ?? "Event"}</p>
-                  {booking.events?.start_at && (
-                    <p className="text-xs font-semibold text-text-muted">{formatEventDateTime(booking.events.start_at)}</p>
-                  )}
-                  {booking.vendor_quotes.length > 0 && (
-                    <div className="mt-1 flex flex-col gap-1">
-                      {booking.vendor_quotes.map((quote) => (
-                        <p key={quote.id} className="text-xs font-semibold text-text-muted">
-                          Quote: {formatZAR(quote.amount)} · {quote.status}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  {canQuote && <SubmitQuoteForm eventVendorId={booking.id} vendorId={vendorId} />}
-                </Card>
-              </StaggerItem>
-            ))
-          ) : (
-            <Card>
-              <p className="text-sm font-semibold text-text-muted">No bookings yet.</p>
-            </Card>
-          )}
-        </StaggerList>
-      </div>
+      {canQuote && (
+        <ProfileCompletionNudge
+          vendorId={vendorId}
+          input={{
+            logoPath: vendor.logo_path,
+            description: vendor.description,
+            galleryCount: galleryImages?.length ?? 0,
+            servicesCount: services?.length ?? 0,
+            socialLinksCount: socialLinks?.length ?? 0,
+          }}
+        />
+      )}
 
-      <div>
-        <h2 className="font-display text-lg font-semibold text-ink">Services</h2>
-        <StaggerList className="mt-3 flex flex-col gap-2">
-          {services && services.length > 0 ? (
-            services.map((service) => (
-              <StaggerItem key={service.id}>
-                <Card className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-text">{service.name}</p>
-                    <p className="text-xs font-semibold text-text-muted">{service.service_categories?.name ?? "Uncategorized"}</p>
-                    {service.description && <p className="text-xs font-semibold text-text-muted">{service.description}</p>}
-                  </div>
-                  {canQuote && (
-                    <form action={removeService}>
-                      <input type="hidden" name="serviceId" value={service.id} />
-                      <input type="hidden" name="vendorId" value={vendorId} />
-                      <button type="submit" className="text-xs font-extrabold text-primary">
-                        Remove
-                      </button>
-                    </form>
-                  )}
-                </Card>
-              </StaggerItem>
-            ))
-          ) : (
-            <Card>
-              <p className="text-sm font-semibold text-text-muted">No services listed yet.</p>
-            </Card>
+      <div className="grid grid-cols-2 gap-2.5">
+        <Link href={`/vendor/${vendorId}/dashboard/bookings`} className="relative flex flex-col gap-3 rounded-[20px] bg-primary-soft p-4">
+          {needsQuote && (
+            <span
+              title="A booking is waiting on a quote"
+              aria-label="A booking is waiting on a quote"
+              className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-primary"
+            />
           )}
-        </StaggerList>
-        {canQuote && (
-          <div className="mt-3">
-            <AddServiceForm vendorId={vendorId} categories={serviceCategories ?? []} />
-          </div>
-        )}
-      </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+            <polyline points="8 14 11 17 16 12"></polyline>
+          </svg>
+          <span className="text-[13px] font-extrabold text-ink">Bookings</span>
+        </Link>
 
-      <div>
-        <h2 className="font-display text-lg font-semibold text-ink">Social Links</h2>
-        <StaggerList className="mt-3 flex flex-col gap-2">
-          {socialLinks && socialLinks.length > 0 ? (
-            socialLinks.map((link) => (
-              <StaggerItem key={link.id}>
-                <Card className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-text">{link.platform}</p>
-                    <a href={link.url} target="_blank" rel="noreferrer" className="text-xs font-semibold">
-                      {link.url}
-                    </a>
-                  </div>
-                  {canQuote && (
-                    <form action={removeSocialLink}>
-                      <input type="hidden" name="linkId" value={link.id} />
-                      <input type="hidden" name="vendorId" value={vendorId} />
-                      <button type="submit" className="text-xs font-extrabold text-primary">
-                        Remove
-                      </button>
-                    </form>
-                  )}
-                </Card>
-              </StaggerItem>
-            ))
-          ) : (
-            <Card>
-              <p className="text-sm font-semibold text-text-muted">No social links added yet.</p>
-            </Card>
+        <Link href={`/vendor/${vendorId}/dashboard/payments`} className="relative flex flex-col gap-3 rounded-[20px] bg-secondary-soft p-4">
+          {hasOverduePayment && (
+            <span
+              title="A payment is overdue"
+              aria-label="A payment is overdue"
+              className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-ink"
+            />
           )}
-        </StaggerList>
-        {canQuote && (
-          <div className="mt-3">
-            {isVerified ? (
-              <AddSocialLinkForm vendorId={vendorId} />
-            ) : (
-              <Card>
-                <p className="text-sm font-semibold text-text-muted">
-                  Social links are only available to verified vendors — claim and verify this listing first.
-                </p>
-              </Card>
-            )}
-          </div>
-        )}
-      </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 7H6a2 2 0 0 1 0-4h12v4"></path>
+            <path d="M4 7v11a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-4"></path>
+            <circle cx="17" cy="14" r="1.2" fill="var(--color-ink)" stroke="none"></circle>
+          </svg>
+          <span className="text-[13px] font-extrabold text-ink">Payments</span>
+        </Link>
 
-      <div>
-        <h2 className="font-display text-lg font-semibold text-ink">Gallery</h2>
-        {galleryImages && galleryImages.length > 0 ? (
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {galleryImages.map((image) => {
-              const { data: publicUrl } = supabase.storage.from("vendor-gallery").getPublicUrl(image.storage_path);
-              return (
-                <div key={image.id} className="relative overflow-hidden rounded-[18px] bg-surface">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- a
-                      Storage public URL isn't a static/optimizable asset
-                      next/image can source-check at build time. */}
-                  <img src={publicUrl.publicUrl} alt={image.caption ?? ""} className="aspect-square w-full object-cover" />
-                  {canQuote && (
-                    <form action={removeVendorGalleryImage} className="absolute right-1.5 top-1.5">
-                      <input type="hidden" name="imageId" value={image.id} />
-                      <input type="hidden" name="vendorId" value={vendorId} />
-                      <input type="hidden" name="storagePath" value={image.storage_path} />
-                      <button
-                        type="submit"
-                        aria-label="Remove photo"
-                        className="flex h-6 w-6 items-center justify-center rounded-full bg-ink/60 text-white"
-                      >
-                        <X size={14} strokeWidth={3} />
-                      </button>
-                    </form>
-                  )}
-                  {image.caption && (
-                    <p className="absolute inset-x-0 bottom-0 truncate bg-ink/60 px-2 py-1 text-[10px] font-semibold text-white">
-                      {image.caption}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <Card className="mt-3">
-            <p className="text-sm font-semibold text-text-muted">No photos yet.</p>
-          </Card>
-        )}
+        <Link href={`/vendor/${vendorId}/dashboard/services`} className="flex flex-col gap-3 rounded-[20px] bg-success-soft p-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.59 9.58a2 2 0 0 0 2.83 0l4.34-4.34a2 2 0 0 0 0-2.83z"></path>
+            <circle cx="8.5" cy="8.5" r="1.2" fill="var(--color-success)" stroke="none"></circle>
+          </svg>
+          <span className="text-[13px] font-extrabold text-ink">Services</span>
+        </Link>
+
+        <Link href={`/vendor/${vendorId}/dashboard/gallery`} className="flex flex-col gap-3 rounded-[20px] bg-primary-soft p-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+            <circle cx="9" cy="9" r="1.6"></circle>
+            <path d="m21 15-4.5-4.5a2 2 0 0 0-2.8 0L4 20"></path>
+          </svg>
+          <span className="text-[13px] font-extrabold text-ink">Gallery</span>
+        </Link>
+
+        <Link href={`/vendor/${vendorId}/dashboard/social-links`} className="flex flex-col gap-3 rounded-[20px] bg-secondary-soft p-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 17H7A5 5 0 0 1 7 7h2"></path>
+            <path d="M15 7h2a5 5 0 1 1 0 10h-2"></path>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+          <span className="text-[13px] font-extrabold text-ink">Social Links</span>
+        </Link>
+
+        <Link href={`/vendor/${vendorId}/dashboard/reviews`} className="relative flex flex-col gap-3 rounded-[20px] bg-success-soft p-4">
+          {unrepliedReviewCount > 0 && (
+            <span className="absolute right-2.5 top-2.5 flex h-5 min-w-5 items-center justify-center rounded-pill bg-primary px-1 text-[11px] font-extrabold text-white">
+              {unrepliedReviewCount}
+            </span>
+          )}
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.63 22 9.24 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.24 8.91 8.63 12 2"></polygon>
+          </svg>
+          <span className="text-[13px] font-extrabold text-ink">Reviews</span>
+        </Link>
+
+        <Link href={`/vendor/${vendorId}/team`} className="flex flex-col gap-3 rounded-[20px] bg-primary-soft p-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span className="text-[13px] font-extrabold text-ink">Team</span>
+        </Link>
+
         {canQuote && (
-          <div className="mt-3">
-            {!isVerified ? (
-              <Card>
-                <p className="text-sm font-semibold text-text-muted">
-                  A photo gallery is only available to verified vendors — claim and verify this listing first.
-                </p>
-              </Card>
-            ) : (galleryImages?.length ?? 0) >= MAX_GALLERY_IMAGES ? (
-              <Card>
-                <p className="text-sm font-semibold text-text-muted">
-                  This gallery is at its {MAX_GALLERY_IMAGES}-photo limit. Remove a photo to add a new one.
-                </p>
-              </Card>
-            ) : (
-              <AddGalleryImageForm vendorId={vendorId} />
-            )}
-          </div>
+          <Link href={`/vendor/${vendorId}/edit`} className="flex flex-col gap-3 rounded-[20px] bg-secondary-soft p-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path>
+            </svg>
+            <span className="text-[13px] font-extrabold text-ink">Business Profile</span>
+          </Link>
         )}
       </div>
     </main>

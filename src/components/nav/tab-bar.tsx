@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { usePersonaStore } from "@/components/providers/persona-provider";
+import { UNSAVED_CHANGES_MESSAGE, useUnsavedChangesStore } from "@/lib/stores/unsaved-changes-store";
+import { confirmDialog } from "@/lib/stores/confirm-dialog-store";
 
 interface Tab {
   label: string;
@@ -35,6 +37,9 @@ function vendorTabs(vendorId: string): Tab[] {
 
 function TabBarShell({ tabs }: { tabs: Tab[] }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const isDirty = useUnsavedChangesStore((state) => state.isDirty);
+  const setDirty = useUnsavedChangesStore((state) => state.setDirty);
 
   return (
     <nav
@@ -47,6 +52,19 @@ function TabBarShell({ tabs }: { tabs: Tab[] }) {
           <Link
             key={tab.href}
             href={tab.href}
+            onNavigate={(e) => {
+              // Can't await the themed dialog inline here and still return
+              // a synchronous answer, so this always blocks the default
+              // navigation first, then re-issues it as a router.push once
+              // (if) the planner actually confirms.
+              if (!isDirty) return;
+              e.preventDefault();
+              confirmDialog({ message: UNSAVED_CHANGES_MESSAGE }).then((confirmed) => {
+                if (!confirmed) return;
+                setDirty(false);
+                router.push(tab.href);
+              });
+            }}
             className="relative rounded-pill px-4 py-2 text-xs font-extrabold"
           >
             {isActive && (

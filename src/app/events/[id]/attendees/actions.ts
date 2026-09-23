@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -47,13 +48,10 @@ export async function addAttendee(_prevState: AttendeeFormState, formData: FormD
     return { error: "Something went wrong adding that attendee. Please try again." };
   }
 
-  // Unlike inviteCollaborator, there's no returned-state value worth
-  // preserving here (just {} on success) — revalidating is pure upside: it
-  // refreshes the visible list AND clears the form's uncontrolled inputs by
-  // remounting it, the "quick add" UX the Salesforce build's own
-  // refreshApex-after-each-mutation pattern was going for.
   revalidatePath(`/events/${eventId}/attendees`);
-  return {};
+  // Back to the attendee list on success, same "+ Add" pattern as the
+  // Budget/Payments add screens (Andre's own ask).
+  redirect(`/events/${eventId}/attendees`);
 }
 
 const updateDetailsSchema = z.object({

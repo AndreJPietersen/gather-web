@@ -23,3 +23,15 @@ export function categoryGradient(category: string | null, verified: boolean): st
   const lightness2 = verified ? 68 : 92;
   return `linear-gradient(135deg, oklch(${lightness1}% ${chroma} ${hue}), oklch(${lightness2}% ${chroma} ${hue + 25}))`;
 }
+
+// The fallback shown inside a VendorAvatar (components/vendor/vendor-
+// avatar.tsx) for the — currently common, pre-marketplace-redesign —
+// case of a vendor with no logo uploaded yet: first letter of the first
+// two words in the name, uppercased, same shape initials-avatars use
+// everywhere (Slack, Gmail, etc.).
+export function vendorInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}

@@ -9,6 +9,7 @@ interface VendorRow {
   name: string;
   primary_category: string | null;
   verification_status: "unclaimed" | "claim_pending" | "verified";
+  is_featured: boolean;
   created_at: string;
 }
 
@@ -24,7 +25,7 @@ export default async function AdminVendorsPage({ searchParams }: PageProps<"/adm
   const query = typeof q === "string" ? q.trim() : "";
 
   const service = createServiceClient();
-  let vendorsQuery = service.from("vendors").select("id, name, primary_category, verification_status, created_at");
+  let vendorsQuery = service.from("vendors").select("id, name, primary_category, verification_status, is_featured, created_at");
   if (query) {
     vendorsQuery = vendorsQuery.ilike("name", `%${query}%`);
   }
@@ -54,7 +55,10 @@ export default async function AdminVendorsPage({ searchParams }: PageProps<"/adm
           vendors.map((vendor) => (
             <LinkCard key={vendor.id} href={`/admin/vendors/${vendor.id}`} className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-text">{vendor.name}</p>
+                <p className="text-sm font-bold text-text">
+                  {vendor.is_featured && <span title="Featured">★ </span>}
+                  {vendor.name}
+                </p>
                 {vendor.primary_category && (
                   <p className="text-xs font-semibold text-text-muted">{vendor.primary_category}</p>
                 )}

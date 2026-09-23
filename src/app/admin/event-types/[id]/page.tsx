@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { BackButton } from "@/components/ui/back-button";
-import { Card } from "@/components/ui/card";
+import { Card, LinkCard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { linkServiceCategory, unlinkServiceCategory } from "./actions";
 
@@ -40,7 +40,7 @@ export default async function AdminEventTypeDetailPage({ params }: PageProps<"/a
         <BackButton />
         <h1 className="font-display text-2xl font-semibold text-ink">{eventType.name}</h1>
         <p className="text-sm font-semibold text-text-muted">
-          Service categories linked here are what "Suggested Vendors" matches against on events of this type.
+          Service categories linked here are what &quot;Suggested Vendors&quot; matches against on events of this type.
         </p>
       </div>
 
@@ -65,9 +65,9 @@ export default async function AdminEventTypeDetailPage({ params }: PageProps<"/a
             );
           })
         ) : (
-          <Card>
+          <LinkCard href="/admin/service-categories">
             <p className="text-sm font-semibold text-text-muted">No service categories yet — add one first.</p>
-          </Card>
+          </LinkCard>
         )}
       </div>
     </div>

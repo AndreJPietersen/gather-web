@@ -2,7 +2,9 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { hasPaidInstallment } from "../vendors/[eventVendorId]/actions";
 
 const createSchema = z.object({
   eventId: z.string().uuid(),
@@ -47,7 +49,11 @@ export async function createBudgetItem(_prevState: BudgetItemFormState, formData
   }
 
   revalidatePath(`/events/${eventId}/budget`);
-  return { success: true };
+  // Back to the list on success, not another blank form — the "add several
+  // suggested categories in one sitting" case just means tapping + Add
+  // again, same one extra tap the equivalent installment flow now costs
+  // too (see addInstallment).
+  redirect(`/events/${eventId}/budget`);
 }
 
 const updateSchema = z.object({
@@ -94,17 +100,40 @@ const itemEventSchema = z.object({
   eventId: z.string().uuid(),
 });
 
-export async function removeBudgetItem(formData: FormData): Promise<void> {
+// A budget item with a linked vendor that has a paid installment can't be
+// deleted out from under that payment record — deleting the row would
+// silently sever budget_items -> payment_plans.budget_item_id (onDelete:
+// "set null") and leave no way back from Payments to "what was this for."
+// Converted from a plain fire-and-forget void action to useActionState
+// (like updateBudgetItem in this same file) specifically so a blocked
+// removal can actually tell the planner why instead of the button just
+// doing nothing — a silent no-op isn't an option once there's a real
+// reason to refuse.
+export async function removeBudgetItem(_prevState: BudgetItemFormState, formData: FormData): Promise<BudgetItemFormState> {
   const parsed = itemEventSchema.safeParse({
     itemId: formData.get("itemId"),
     eventId: formData.get("eventId"),
   });
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    return { error: "Something went wrong. Please try again." };
+  }
 
   const supabase = await createClient();
+  const { data: item } = await supabase
+    .from("budget_items")
+    .select("event_vendor_id")
+    .eq("id", parsed.data.itemId)
+    .eq("event_id", parsed.data.eventId)
+    .maybeSingle<{ event_vendor_id: string | null }>();
+
+  if (item?.event_vendor_id && (await hasPaidInstallment(item.event_vendor_id))) {
+    return { error: "Can't remove — the linked vendor has a paid installment. Mark it refunded first." };
+  }
+
   await supabase.from("budget_items").delete().eq("id", parsed.data.itemId).eq("event_id", parsed.data.eventId);
 
   revalidatePath(`/events/${parsed.data.eventId}/budget`);
+  return { success: true };
 }
 
 const linkVendorSchema = z.object({
@@ -133,17 +162,56 @@ export async function linkVendorToBudgetItem(formData: FormData): Promise<void> 
     .eq("id", parsed.data.itemId)
     .eq("event_id", parsed.data.eventId);
 
+  // If this vendor already has exactly one payment plan, and it isn't
+  // already tagged to some other budget line, tag it to this one too —
+  // there's only one plan this line could mean, so skipping straight past
+  // "Pending · Create a payment plan" here beats making the planner do it
+  // by hand right after they just did the equivalent linking step. Left
+  // alone (not stolen) when that plan is already tagged elsewhere: the
+  // same event_vendor can legitimately be linked from more than one budget
+  // line (see above), and silently re-pointing an already-tagged plan
+  // would break that other line's own committed-amount display.
+  const { data: plans } = await supabase
+    .from("payment_plans")
+    .select("id, budget_item_id")
+    .eq("event_vendor_id", parsed.data.eventVendorId)
+    .returns<{ id: string; budget_item_id: string | null }[]>();
+
+  if (plans?.length === 1 && plans[0].budget_item_id === null) {
+    await supabase.from("payment_plans").update({ budget_item_id: parsed.data.itemId }).eq("id", plans[0].id);
+  }
+
   revalidatePath(`/events/${parsed.data.eventId}/budget`);
 }
 
-export async function unlinkVendorFromBudgetItem(formData: FormData): Promise<void> {
+// Same guard/shape change as removeBudgetItem above, for the same reason —
+// unlinking is a smaller action (the budget line survives, only the vendor
+// link goes) but it's still severing the one thing that ties a paid
+// installment back to a budget line.
+export async function unlinkVendorFromBudgetItem(
+  _prevState: BudgetItemFormState,
+  formData: FormData,
+): Promise<BudgetItemFormState> {
   const parsed = itemEventSchema.safeParse({
     itemId: formData.get("itemId"),
     eventId: formData.get("eventId"),
   });
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    return { error: "Something went wrong. Please try again." };
+  }
 
   const supabase = await createClient();
+  const { data: item } = await supabase
+    .from("budget_items")
+    .select("event_vendor_id")
+    .eq("id", parsed.data.itemId)
+    .eq("event_id", parsed.data.eventId)
+    .maybeSingle<{ event_vendor_id: string | null }>();
+
+  if (item?.event_vendor_id && (await hasPaidInstallment(item.event_vendor_id))) {
+    return { error: "Can't unlink — this vendor has a paid installment. Mark it refunded first." };
+  }
+
   await supabase
     .from("budget_items")
     .update({ event_vendor_id: null })
@@ -151,4 +219,5 @@ export async function unlinkVendorFromBudgetItem(formData: FormData): Promise<vo
     .eq("event_id", parsed.data.eventId);
 
   revalidatePath(`/events/${parsed.data.eventId}/budget`);
+  return { success: true };
 }

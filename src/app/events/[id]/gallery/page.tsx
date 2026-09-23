@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { X } from "lucide-react";
-import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getEventAccess } from "../access";
@@ -54,11 +54,9 @@ export default async function EventGalleryPage({ params }: PageProps<"/events/[i
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <h1 className="font-display text-3xl font-semibold text-ink">Gallery</h1>
-        <p className="mt-1 text-sm font-semibold text-text-muted">{event.name}</p>
-      </div>
+      <PageHeader title="Gallery">
+        <p className="text-sm font-semibold text-text-muted">{event.name}</p>
+      </PageHeader>
 
       {imagesWithUrls.length > 0 ? (
         <div className="grid grid-cols-2 gap-2">

@@ -33,7 +33,7 @@ export function NotificationPreferencesForm({
     <form action={formAction} className="flex flex-col gap-3">
       <label className="flex items-center gap-2 text-sm font-semibold text-text">
         <input type="checkbox" name="emailReminders" defaultChecked={emailReminders} />
-        Email payment reminders
+        Email reminders (tasks &amp; payments)
       </label>
       <label className="flex items-center gap-2 text-sm font-semibold text-text-muted opacity-60">
         <input type="checkbox" disabled />

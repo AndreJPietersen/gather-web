@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { BackButton } from "@/components/ui/back-button";
 import { Card, LinkCard } from "@/components/ui/card";
+import { supportCaseCategoryLabel } from "@/lib/support-case-categories";
 import { updateCaseStatus } from "./actions";
 import { CommentForm } from "./comment-form";
 
@@ -12,11 +13,15 @@ interface CaseDetail {
   description: string | null;
   status: "open" | "pending" | "resolved" | "closed";
   priority: "low" | "normal" | "high" | "urgent";
+  category: string | null;
+  attachment_path: string | null;
   created_at: string;
   requester: { id: string; display_name: string | null } | null;
   related_event: { id: string; name: string } | null;
   related_vendor: { id: string; name: string } | null;
 }
+
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 interface CommentRow {
   id: string;
@@ -35,13 +40,24 @@ export default async function AdminCaseDetailPage({ params }: PageProps<"/admin/
   const { data: supportCase } = await service
     .from("support_cases")
     .select(
-      "id, subject, description, status, priority, created_at, requester:profiles!support_cases_requester_id_profiles_id_fk(id, display_name), related_event:events(id, name), related_vendor:vendors(id, name)",
+      "id, subject, description, status, priority, category, attachment_path, created_at, requester:profiles!support_cases_requester_id_profiles_id_fk(id, display_name), related_event:events(id, name), related_vendor:vendors(id, name)",
     )
     .eq("id", id)
     .maybeSingle<CaseDetail>();
 
   if (!supportCase) {
     notFound();
+  }
+
+  // The service-role client bypasses storage RLS the same way it bypasses
+  // every table's RLS — no special "am I this case's reporter" check needed
+  // here the way there is on the planner-facing detail page.
+  let attachmentUrl: string | null = null;
+  if (supportCase.attachment_path) {
+    const { data } = await service.storage
+      .from("support-case-attachments")
+      .createSignedUrl(supportCase.attachment_path, SIGNED_URL_TTL_SECONDS);
+    attachmentUrl = data?.signedUrl ?? null;
   }
 
   const { data: comments } = await service
@@ -57,8 +73,9 @@ export default async function AdminCaseDetailPage({ params }: PageProps<"/admin/
         <BackButton />
         <h1 className="font-display text-2xl font-semibold text-ink">{supportCase.subject}</h1>
         <p className="text-sm font-semibold text-text-muted">
-          {supportCase.requester?.display_name ?? "No requester"} · {supportCase.priority} priority · Logged{" "}
-          {new Date(supportCase.created_at).toLocaleDateString()}
+          {supportCase.requester?.display_name ?? "No requester"}
+          {supportCase.category && ` · ${supportCaseCategoryLabel(supportCase.category)}`} · {supportCase.priority} priority
+          · Logged {new Date(supportCase.created_at).toLocaleDateString()}
         </p>
       </div>
 
@@ -66,6 +83,15 @@ export default async function AdminCaseDetailPage({ params }: PageProps<"/admin/
         <Card>
           <p className="text-sm font-semibold text-text">{supportCase.description}</p>
         </Card>
+      )}
+
+      {attachmentUrl && (
+        <div className="overflow-hidden rounded-[22px] bg-surface shadow-[0_6px_16px_-8px_var(--color-ink)]">
+          {/* eslint-disable-next-line @next/next/no-img-element --
+              a signed Storage URL isn't a static/optimizable asset next/image
+              can source-check at build time. */}
+          <img src={attachmentUrl} alt="Attached screenshot" className="w-full object-cover" />
+        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">

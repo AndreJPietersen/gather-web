@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { ClaimForm } from "./claim-form";
@@ -42,15 +42,9 @@ export default async function ClaimVendorPage({ params }: PageProps<"/vendors/[i
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <div>
-          <h1 className="font-display text-3xl font-semibold text-ink">Claim {vendor.name}</h1>
-          <p className="mt-1 text-sm font-semibold text-text-muted">
-            Tell us how we can confirm this is your business.
-          </p>
-        </div>
-      </div>
+      <PageHeader title={`Claim ${vendor.name}`}>
+        <p className="text-sm font-semibold text-text-muted">Tell us how we can confirm this is your business.</p>
+      </PageHeader>
 
       {existingClaim ? (
         <Card>

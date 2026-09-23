@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
@@ -40,11 +40,9 @@ export default async function EventTasksPage({ params }: PageProps<"/events/[id]
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <h1 className="font-display text-3xl font-semibold text-ink">Tasks</h1>
-        <p className="mt-1 text-sm font-semibold text-text-muted">{event.name}</p>
-      </div>
+      <PageHeader title="Tasks">
+        <p className="text-sm font-semibold text-text-muted">{event.name}</p>
+      </PageHeader>
 
       {access.isEditor && <AddTaskForm eventId={event.id} />}
 

@@ -41,3 +41,24 @@ export function upcomingCutoffDate(window: UpcomingWindow): string {
   cutoff.setDate(cutoff.getDate() + upcomingWindowDays(window));
   return cutoff.toISOString().slice(0, 10);
 }
+
+// installment_status has a real "late" enum value that every display
+// branch in this app checks for — but nothing anywhere has ever written it
+// (no cron, no trigger); it's permanently "pending" in the database even
+// past its due date. Compute overdue-ness live instead of trusting the
+// stored status, the same "derive it, don't store a flag nothing
+// maintains" fix already applied once in this app (the budget page's
+// under/over-budget line). `todayIso` is injectable for tests; defaults to
+// the real today the same way getCountdownRemaining's `nowMs` does.
+export function isInstallmentOverdue(status: string, dueDate: string, todayIso: string = new Date().toISOString().slice(0, 10)): boolean {
+  return status === "pending" && dueDate < todayIso;
+}
+
+// The plain, status-less version of the same idea — event_tasks has no
+// enum to worry about being stale (just a due_date and a completed
+// boolean), so this is just the date comparison on its own, shared so
+// task-overdue-ness is computed the same one way everywhere (currently:
+// the task reminder check) rather than each call site re-deriving it.
+export function isDateOverdue(dueDate: string, todayIso: string = new Date().toISOString().slice(0, 10)): boolean {
+  return dueDate < todayIso;
+}

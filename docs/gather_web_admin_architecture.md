@@ -52,7 +52,7 @@ Every admin page and every admin Server Action calls this **first**, uncondition
 | Table | Purpose | RLS |
 |---|---|---|
 | `profiles.is_admin` | New column, default `false`. | Covered by existing `profiles` policies; never read directly by app code — always through `is_admin()`. |
-| `support_cases` | A support interaction: `id`, `subject`, `description`, `status` (`open`/`pending`/`resolved`/`closed`), `priority` (`low`/`normal`/`high`/`urgent`), `requester_id` (nullable → `profiles.id` — the planner/vendor the case is about, if any), `related_event_id` (nullable → `events.id`), `related_vendor_id` (nullable → `vendors.id`), `assigned_admin_id` (nullable → `profiles.id`), `created_by` (→ `profiles.id`, which admin logged it), `created_at`, `updated_at`, `resolved_at`. | `.enableRLS()`, **zero regular policies** — service-role-only, same posture every not-yet-built table in this project starts from. Support notes can contain sensitive internal discussion; there's no legitimate end-user access pattern to design a policy for. |
+| `support_cases` | A support interaction: `id`, `subject`, `description`, `status` (`open`/`pending`/`resolved`/`closed`), `priority` (`low`/`normal`/`high`/`urgent`), `category` (nullable — `payments_billing`/`vendor_booking`/`event_setup`/`account_verification`/`app_bug`/`other`; only ever set by the self-service form, see Open Question #2 below), `attachment_path` (nullable — an optional screenshot), `requester_id` (nullable → `profiles.id` — the planner/vendor the case is about, if any), `related_event_id` (nullable → `events.id`), `related_vendor_id` (nullable → `vendors.id`), `assigned_admin_id` (nullable → `profiles.id`), `created_by` (→ `profiles.id`), `created_at`, `updated_at`, `resolved_at`. | `.enableRLS()`. Two regular policies now exist, added for self-service case submission (Profile → Report an Issue): a signed-in user can INSERT a case as themselves (`created_by = requester_id = auth.uid()`) and SELECT their own cases back (`requester_id = auth.uid()`) — enough to submit a report and see its status, not to see or write the comment thread, which stays service-role-only (case notes can still carry sensitive internal discussion). Everything else about this table (status changes, assignment, priority) is still admin-only, reached through the service-role client same as before. |
 | `support_case_comments` | The comment/timeline thread on a case: `id`, `case_id` (→ `support_cases.id`, cascade delete), `author_id` (→ `profiles.id`), `body`, `created_at`. | Same as above — service-role-only. |
 | `admin_audit_log` | Accountability trail for every admin *mutation* (not reads): `id`, `admin_id` (→ `profiles.id`), `action` (e.g. `"event.cancelled"`, `"vendor_claim.approved"`, `"profile.edited"`), `target_table`, `target_id`, `detail` (`jsonb` — a small before/after or reason payload), `created_at`. | Service-role-only, write-only from the app's perspective (every admin action that changes data writes one row here; nothing in the admin UI needs to read its own writes back mid-request). |
 
@@ -72,15 +72,17 @@ All under `/admin` — a separate namespace from the consumer app, sharing no ro
 | `/admin/planners` | Searchable/filterable list of every `profiles` row. |
 | `/admin/planners/[id]` | One planner's detail: their events, collaborations, vendor memberships, case history. |
 | `/admin/vendors` | Every vendor, filterable by verification status/category. |
-| `/admin/vendors/[id]` | One vendor's detail: services, team, quotes, event associations, case history. |
+| `/admin/vendors/[id]` | One vendor's detail: services, team, quotes, event associations, case history. Also where the Featured toggle lives (`vendors.is_featured`, added 2026-09-16 for the vendor marketplace redesign — see `gather_web_architecture.md`'s changelog) — the only real write path, since that column's own UPDATE grant deliberately excludes `authenticated` entirely. |
 | `/admin/vendors/claims` | The claim-approval queue — this subsumes the "admin claim approve/reject" screen originally flagged (and left undecided) back in Phase 3/6; it lives here now instead of being built as a one-off inside Phase 6. |
 | `/admin/events` | Every event regardless of owner, status, or visibility. |
 | `/admin/events/[id]` | One event's detail: attendees, tasks, vendor associations, collaborators, moderation actions (e.g. cancel). |
 | `/admin/cases` | The support case queue, filterable by status/priority/assignee. |
-| `/admin/cases/new` | Log a new case — the admin-created path; there's no self-service "submit a support request" surface yet (a plausible future phase, not this one). |
-| `/admin/cases/[id]` | Case detail + comment thread. |
+| `/admin/cases/new` | Log a new case by hand — the original admin-created path (a phone call, an email), still the only way to log a case with no known requester. |
+| `/admin/cases/[id]` | Case detail + comment thread; also shows the reporter's chosen category and attachment, when the case came from the self-service form. |
 
 No separate admin login: an admin is just a flagged `profiles` row, so `/login` (already built) is the only sign-in path. `requireAdmin()` is what actually decides whether `/admin/*` opens for that session, not a different auth flow.
+
+The consumer-facing counterpart (`/profile/cases`, `/profile/cases/new`, `/profile/cases/[id]`) lives outside `/admin` entirely, in the regular mobile app shell — see `docs/gather_web_architecture.md`'s changelog for that feature. It reuses this phase's `support_cases` table and enum types but is otherwise a fully separate route tree with its own RLS-scoped (not service-role) queries, matching this doc's own "service-role client stays inside `src/app/admin/**`" rule.
 
 ---
 
@@ -107,5 +109,5 @@ Proposed as **Phase 10**, after Polish & Hardening — see `gather_web_epic_road
 ## Open Questions (carried forward, not blocking)
 
 1. **Role tiers within admin.** Today it's a single `is_admin` boolean — no "read-only support agent" vs. "full admin" distinction. Fine for a small, trusted internal team; revisit if the support team grows past a size where everyone having full edit access is comfortable.
-2. **Self-service case submission.** Cases are admin-logged only for now (e.g. from a phone call or email). A planner/vendor-facing "contact support" form that creates a case directly is a plausible, separate future phase — deliberately not this one, to keep this phase's scope to the admin side only.
+2. ~~**Self-service case submission.**~~ **Done** — see `docs/gather_web_architecture.md`'s changelog ("Profile → Report an Issue"). A planner/vendor can now log a case directly (category, free text, optional screenshot) and see its status; the comment thread stays admin-only, which is a smaller follow-up worth doing if support ever needs to reply somewhere the reporter can see it.
 3. **`phone` (and any future PII column) exposure on `profiles`.** Flagged again here because `is_admin`'s design was shaped by it: `profiles_select_all_authenticated`'s `using: true` is looser than it should be for any sensitive column. Not this phase's job to fix, but the `SECURITY DEFINER`-function pattern used for `is_admin` here is the template for whenever it is.

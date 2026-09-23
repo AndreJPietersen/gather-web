@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 import { PersonaProvider } from "@/components/providers/persona-provider";
 import { GuestTabBar, AuthedTabBar } from "@/components/nav/tab-bar";
 import { ToastContainer } from "@/components/toast/toast-container";
+import { ReminderChecker } from "@/components/reminders/reminder-checker";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
+import { ConfirmDialogHost } from "@/components/confirm-dialog-host";
 import type { SessionContext } from "@/lib/session";
 
 export function AppShell({ session, children }: { session: SessionContext; children: ReactNode }) {
@@ -20,6 +23,7 @@ export function AppShell({ session, children }: { session: SessionContext; child
       <>
         {children}
         <ToastContainer />
+        <ConfirmDialogHost />
       </>
     );
   }
@@ -30,6 +34,8 @@ export function AppShell({ session, children }: { session: SessionContext; child
         <main className="flex-1 pb-[calc(64px+env(safe-area-inset-bottom))]">{children}</main>
         <GuestTabBar />
         <ToastContainer />
+        <UnsavedChangesGuard />
+        <ConfirmDialogHost />
       </>
     );
   }
@@ -39,6 +45,9 @@ export function AppShell({ session, children }: { session: SessionContext; child
       <main className="flex-1 pb-[calc(64px+env(safe-area-inset-bottom))]">{children}</main>
       <AuthedTabBar />
       <ToastContainer />
+      <ReminderChecker />
+      <UnsavedChangesGuard />
+      <ConfirmDialogHost />
     </PersonaProvider>
   );
 }

@@ -5,6 +5,7 @@ import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import { PersonaSwitcher } from "@/components/nav/persona-switcher";
 import { getSessionContext } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
+import { vendorInitials } from "@/lib/vendor-gradient";
 import { signOut, respondToEventInvite, respondToVendorInvite } from "./actions";
 import { NotificationPreferencesForm } from "./notification-preferences-form";
 
@@ -65,6 +66,20 @@ export default async function ProfilePage() {
     pendingVendorInvites = vendorInvites ?? [];
   }
 
+  // Only for the identity hero's subtitle line — getSessionContext() itself
+  // deliberately only returns displayName (see its own doc comment on why
+  // it's read fresh rather than cached), not email, so this is its own
+  // small targeted fetch rather than widening that shared type for one
+  // display line.
+  let email: string | null = null;
+  if (session.status === "authenticated") {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    email = user?.email ?? null;
+  }
+
   // No row exists until the first save — default to the column defaults
   // (email on, sms/push off, one-week lookahead) rather than treating "no
   // row" as an error.
@@ -89,27 +104,65 @@ export default async function ProfilePage() {
         <h1 className="font-display text-3xl font-semibold text-ink">Profile</h1>
       </div>
 
-      <div>
-        <h2 className="font-display text-lg font-semibold text-ink">Theme</h2>
-        <Card className="mt-3">
-          <ThemeSwitcher />
-        </Card>
-      </div>
-
       {session.status === "authenticated" && (
-        <Card className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-bold text-text">Signed in as {session.displayName ?? "you"}.</p>
-            <Link href="/profile/edit" className="shrink-0 text-xs font-extrabold text-primary">
-              Edit Profile
-            </Link>
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink">Support</h2>
+          <div className="mt-3 flex flex-col gap-2">
+            <Card className="flex items-center justify-between gap-2">
+              <p className="text-sm font-bold text-text">Have a question?</p>
+              <Link href="/faq" className="shrink-0 text-xs font-extrabold text-primary">
+                Check the FAQ
+              </Link>
+            </Card>
+            <Card className="flex items-center justify-between gap-2">
+              <p className="text-sm font-bold text-text">Something not working, or need help?</p>
+              <Link href="/profile/cases" className="shrink-0 text-xs font-extrabold text-primary">
+                Report an Issue
+              </Link>
+            </Card>
           </div>
-          <form action={signOut}>
-            <Button type="submit" variant="secondary">
-              Log out
-            </Button>
+        </div>
+      )}
+
+      {/* The identity hero — Andre's own feedback that the old "Signed in
+          as Andre." sentence + a full-width Log out button read as a
+          settings row, not a profile. Reuses Home's exact gradient-hero
+          language (the "Welcome back" card) rather than inventing a new
+          visual style, with the same asymmetry that design canvas landed
+          on: Edit Profile is the one clear action, Log out is demoted to a
+          small icon (the same circular treatment BackButton already uses)
+          so the two stop competing for equal visual weight. */}
+      {session.status === "authenticated" && (
+        <div className="relative flex flex-col gap-4 rounded-[26px] bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-glow))] p-6 shadow-[0_10px_24px_-10px_var(--color-primary)]">
+          <form action={signOut} className="absolute right-4 top-4">
+            <button
+              type="submit"
+              title="Log out"
+              aria-label="Log out"
+              className="flex h-9 w-9 items-center justify-center rounded-pill border border-white/40 bg-white/20 text-white transition-opacity active:opacity-70"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
           </form>
-        </Card>
+
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-pill border border-white/40 bg-white/20 font-display text-xl font-semibold text-white">
+              {vendorInitials(session.displayName ?? email ?? "you")}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate font-display text-xl font-semibold leading-tight text-white">{session.displayName ?? "Your profile"}</p>
+              {email && <p className="mt-0.5 truncate text-xs font-bold text-white/85">{email}</p>}
+            </div>
+          </div>
+
+          <Link href="/profile/edit" className="rounded-pill bg-white px-6 py-3.5 text-center text-[14.5px] font-extrabold text-primary">
+            Edit Profile
+          </Link>
+        </div>
       )}
 
       {session.status === "authenticated" && session.personas.length > 1 && (
@@ -129,6 +182,13 @@ export default async function ProfilePage() {
           </Card>
         </div>
       )}
+
+      <div>
+        <h2 className="font-display text-lg font-semibold text-ink">Theme</h2>
+        <Card className="mt-3">
+          <ThemeSwitcher />
+        </Card>
+      </div>
 
       {pendingInvites.length > 0 && (
         <div>

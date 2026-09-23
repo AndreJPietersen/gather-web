@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ListTodo, Wallet } from "lucide-react";
-import { Card, LinkCard } from "@/components/ui/card";
+import { LinkCard } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventDateTime } from "@/lib/utils";
-import { getUpcomingWindow, upcomingCutoffDate } from "@/lib/upcoming";
+import { getUpcomingWindow, upcomingCutoffDate, isInstallmentOverdue } from "@/lib/upcoming";
 
 interface MyEvent {
   id: string;
@@ -95,6 +95,7 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
   // per event card.
   let eventIdsWithPendingTasks = new Set<string>();
   let eventIdsWithPendingPayments = new Set<string>();
+  let eventIdsWithOverduePayments = new Set<string>();
   if (user && events && events.length > 0) {
     const upcomingWindow = await getUpcomingWindow(supabase, user.id);
     const cutoff = upcomingCutoffDate(upcomingWindow);
@@ -111,15 +112,21 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
         .returns<{ event_id: string }[]>(),
       supabase
         .from("payment_installments")
-        .select("payment_plans(event_vendors(event_id))")
+        .select("status, due_date, payment_plans(event_vendors(event_id))")
         .in("status", ["pending", "late"])
         .lte("due_date", cutoff)
-        .returns<{ payment_plans: { event_vendors: { event_id: string } | null } | null }[]>(),
+        .returns<{ status: string; due_date: string; payment_plans: { event_vendors: { event_id: string } | null } | null }[]>(),
     ]);
 
     eventIdsWithPendingTasks = new Set((pendingTasks ?? []).map((t) => t.event_id));
     eventIdsWithPendingPayments = new Set(
       (pendingInstallments ?? [])
+        .map((i) => i.payment_plans?.event_vendors?.event_id)
+        .filter((id): id is string => Boolean(id)),
+    );
+    eventIdsWithOverduePayments = new Set(
+      (pendingInstallments ?? [])
+        .filter((i) => isInstallmentOverdue(i.status, i.due_date))
         .map((i) => i.payment_plans?.event_vendors?.event_id)
         .filter((id): id is string => Boolean(id)),
     );
@@ -189,12 +196,12 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
                   )}
                   {eventIdsWithPendingPayments.has(event.id) && (
                     <span
-                      title="Has upcoming payments"
-                      aria-label="Has upcoming payments"
+                      title={eventIdsWithOverduePayments.has(event.id) ? "Has an overdue payment" : "Has upcoming payments"}
+                      aria-label={eventIdsWithOverduePayments.has(event.id) ? "Has an overdue payment" : "Has upcoming payments"}
                       className="flex items-center gap-1 rounded-pill bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary"
                     >
                       <Wallet size={11} strokeWidth={2.5} />
-                      Payment
+                      {eventIdsWithOverduePayments.has(event.id) ? "Overdue" : "Payment"}
                     </span>
                   )}
                 </div>
@@ -207,9 +214,13 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
             );
           })
         ) : (
-          <Card>
+          // A LinkCard, not a plain Card — this message reads as tappable
+          // (same rounded-card shape every real row on this page uses), and
+          // a real planner tapped it expecting it to work. Points at the
+          // same /events/new the header's own "+ New" button does.
+          <LinkCard href="/events/new">
             <p className="text-sm font-semibold text-text-muted">No events yet — create your first one.</p>
-          </Card>
+          </LinkCard>
         )}
       </StaggerList>
     </main>

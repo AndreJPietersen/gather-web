@@ -1,0 +1,1 @@
+ALTER TYPE "public"."installment_status" ADD VALUE 'refunded';

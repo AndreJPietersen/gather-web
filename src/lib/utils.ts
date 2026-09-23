@@ -36,6 +36,19 @@ export function formatEventDateTime(iso: string) {
   });
 }
 
+// For a plain `date` column (rsvp_date, deposit_due_date) — no time-of-day,
+// so no SAST conversion either: formatted in UTC explicitly, otherwise the
+// browser/server's own local timezone could roll "2027-01-15" back or
+// forward a calendar day depending on where this happens to run.
+export function formatEventDate(dateStr: string) {
+  return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 // SAST is a fixed UTC+2 offset with no daylight saving, so appending it
 // directly to a `datetime-local` input's value (which has no timezone of
 // its own) is enough to correctly convert a SAST wall-clock time to the
@@ -72,4 +85,31 @@ export function isoToSastInput(iso: string | null): string {
 // column's string representation via postgres.js, not a JS number.
 export function formatZAR(amount: string | number): string {
   return new Intl.NumberFormat("en-ZA", { style: "currency", currency: "ZAR" }).format(Number(amount));
+}
+
+export interface CountdownRemaining {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  done: boolean;
+}
+
+// Shared by the countdown card's server-side initial render (page.tsx,
+// using the server's own Date.now() at render time) and its client-side
+// setInterval tick (countdown-card.tsx, using the browser's Date.now()
+// each second) — same function, different clock reading, so the two
+// never drift out of sync with each other's math, only with wall-clock
+// time itself between renders (expected and harmless for a live
+// countdown — see countdown-card.tsx's own suppressHydrationWarning use).
+export function getCountdownRemaining(targetIso: string, nowMs: number = Date.now()): CountdownRemaining {
+  const diffMs = new Date(targetIso).getTime() - nowMs;
+  if (diffMs <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, done: true };
+  }
+  const days = Math.floor(diffMs / 86_400_000);
+  const hours = Math.floor((diffMs % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((diffMs % 3_600_000) / 60_000);
+  const seconds = Math.floor((diffMs % 60_000) / 1_000);
+  return { days, hours, minutes, seconds, done: false };
 }

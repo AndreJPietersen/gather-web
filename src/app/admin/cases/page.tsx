@@ -3,12 +3,14 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { Card, LinkCard } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supportCaseCategoryLabel } from "@/lib/support-case-categories";
 
 interface CaseRow {
   id: string;
   subject: string;
   status: "open" | "pending" | "resolved" | "closed";
   priority: "low" | "normal" | "high" | "urgent";
+  category: string | null;
   created_at: string;
   requester: { display_name: string | null } | null;
 }
@@ -37,7 +39,9 @@ export default async function AdminCasesPage({ searchParams }: PageProps<"/admin
   const service = createServiceClient();
   let casesQuery = service
     .from("support_cases")
-    .select("id, subject, status, priority, created_at, requester:profiles!support_cases_requester_id_profiles_id_fk(display_name)");
+    .select(
+      "id, subject, status, priority, category, created_at, requester:profiles!support_cases_requester_id_profiles_id_fk(display_name)",
+    );
   if (activeStatus) {
     casesQuery = casesQuery.eq("status", activeStatus);
   }
@@ -82,7 +86,8 @@ export default async function AdminCasesPage({ searchParams }: PageProps<"/admin
               <div>
                 <p className="text-sm font-bold text-text">{c.subject}</p>
                 <p className="text-xs font-semibold text-text-muted">
-                  {c.requester?.display_name ?? "No requester"} ·{" "}
+                  {c.requester?.display_name ?? "No requester"}
+                  {c.category && ` · ${supportCaseCategoryLabel(c.category)}`} ·{" "}
                   <span className={priorityClasses[c.priority]}>{c.priority}</span>
                 </p>
               </div>

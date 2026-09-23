@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sastInputToIso } from "@/lib/utils";
 import type { EventFormState } from "../event-form";
 import { resolveEventType } from "../resolve-event-type";
+import { validateEventDates } from "../validate-event-dates";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(150),
@@ -13,6 +14,7 @@ const schema = z.object({
   eventTypeOther: z.string().trim().max(60).optional().or(z.literal("")),
   startAt: z.string().min(1, "Start date/time is required"),
   endAt: z.string().optional().or(z.literal("")),
+  rsvpDate: z.string().optional().or(z.literal("")),
   location: z.string().trim().max(200).optional().or(z.literal("")),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   visibility: z.enum(["public", "private", "invite_only"]),
@@ -29,6 +31,7 @@ export async function createEvent(_prevState: EventFormState, formData: FormData
     eventTypeOther: formData.get("eventTypeOther") || "",
     startAt: formData.get("startAt"),
     endAt: formData.get("endAt"),
+    rsvpDate: formData.get("rsvpDate"),
     location: formData.get("location"),
     description: formData.get("description"),
     visibility: formData.get("visibility"),
@@ -40,6 +43,11 @@ export async function createEvent(_prevState: EventFormState, formData: FormData
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Please check your details." };
+  }
+
+  const dateError = validateEventDates(parsed.data.startAt, parsed.data.endAt ?? "", parsed.data.rsvpDate ?? "");
+  if (dateError) {
+    return { error: dateError };
   }
 
   const supabase = await createClient();
@@ -57,6 +65,7 @@ export async function createEvent(_prevState: EventFormState, formData: FormData
     eventTypeOther,
     startAt,
     endAt,
+    rsvpDate,
     location,
     description,
     visibility,
@@ -80,6 +89,7 @@ export async function createEvent(_prevState: EventFormState, formData: FormData
       event_type_id: resolvedType.eventTypeId,
       start_at: sastInputToIso(startAt),
       end_at: endAt ? sastInputToIso(endAt) : null,
+      rsvp_date: rsvpDate || null,
       location: location || null,
       description: description || null,
       visibility,

@@ -46,6 +46,7 @@ export async function submitQuote(_prevState: SubmitQuoteState, formData: FormDa
   }
 
   revalidatePath(`/vendor/${vendorId}/dashboard`);
+  revalidatePath(`/vendor/${vendorId}/dashboard/bookings`);
   return {};
 }
 
@@ -87,6 +88,8 @@ export async function addService(_prevState: ServiceFormState, formData: FormDat
   }
 
   revalidatePath(`/vendor/${vendorId}/dashboard`);
+  revalidatePath(`/vendor/${vendorId}/dashboard/services`);
+  revalidatePath(`/vendor/${vendorId}/edit`);
   return {};
 }
 
@@ -99,6 +102,8 @@ export async function removeService(formData: FormData): Promise<void> {
   await supabase.from("vendor_services").delete().eq("id", serviceId);
 
   revalidatePath(`/vendor/${vendorId}/dashboard`);
+  revalidatePath(`/vendor/${vendorId}/dashboard/services`);
+  revalidatePath(`/vendor/${vendorId}/edit`);
 }
 
 const socialLinkSchema = z.object({
@@ -138,6 +143,8 @@ export async function addSocialLink(_prevState: SocialLinkFormState, formData: F
   }
 
   revalidatePath(`/vendor/${vendorId}/dashboard`);
+  revalidatePath(`/vendor/${vendorId}/dashboard/social-links`);
+  revalidatePath(`/vendor/${vendorId}/edit`);
   revalidatePath(`/vendors/${vendorId}`);
   return {};
 }
@@ -151,6 +158,8 @@ export async function removeSocialLink(formData: FormData): Promise<void> {
   await supabase.from("vendor_social_links").delete().eq("id", linkId);
 
   revalidatePath(`/vendor/${vendorId}/dashboard`);
+  revalidatePath(`/vendor/${vendorId}/dashboard/social-links`);
+  revalidatePath(`/vendor/${vendorId}/edit`);
   revalidatePath(`/vendors/${vendorId}`);
 }
 
@@ -231,6 +240,8 @@ export async function uploadVendorGalleryImage(
   }
 
   revalidatePath(`/vendor/${vendorId}/dashboard`);
+  revalidatePath(`/vendor/${vendorId}/dashboard/gallery`);
+  revalidatePath(`/vendor/${vendorId}/edit`);
   revalidatePath(`/vendors/${vendorId}`);
   return {};
 }
@@ -248,5 +259,7 @@ export async function removeVendorGalleryImage(formData: FormData): Promise<void
   }
 
   revalidatePath(`/vendor/${vendorId}/dashboard`);
+  revalidatePath(`/vendor/${vendorId}/dashboard/gallery`);
+  revalidatePath(`/vendor/${vendorId}/edit`);
   revalidatePath(`/vendors/${vendorId}`);
 }

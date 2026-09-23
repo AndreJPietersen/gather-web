@@ -1,6 +1,7 @@
 import { cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Input, type InputProps } from "./input";
+import { PercentInput } from "./percent-input";
 
 interface FieldProps {
   label: string;
@@ -14,15 +15,16 @@ interface FieldProps {
 // label entirely, which native `type="date"`/`type="number"` inputs can't
 // make up for with `placeholder` alone.
 export function Field({ label, className, children }: FieldProps) {
-  // When wrapping an Input specifically, tell it not to also derive its own
-  // aria-label from placeholder — an aria-label attribute always beats a
-  // wrapping <label> per the ARIA accname algorithm, so without this an
-  // Input with both a placeholder and a Field label would announce the
-  // placeholder text instead of the real label. Only Input needs this: a
-  // native <select> (the other thing Field wraps, e.g. Visibility/Priority
-  // fields) has no such default to suppress.
+  // When wrapping an Input (or PercentInput, which wraps one internally)
+  // specifically, tell it not to also derive its own aria-label from
+  // placeholder — an aria-label attribute always beats a wrapping <label>
+  // per the ARIA accname algorithm, so without this an Input with both a
+  // placeholder and a Field label would announce the placeholder text
+  // instead of the real label. Only these need it: a native <select> (the
+  // other thing Field wraps, e.g. Visibility/Priority fields) has no such
+  // default to suppress.
   const child =
-    isValidElement(children) && children.type === Input
+    isValidElement(children) && (children.type === Input || children.type === PercentInput)
       ? cloneElement(children as ReactElement<InputProps>, { deriveAriaLabelFromPlaceholder: false })
       : children;
 

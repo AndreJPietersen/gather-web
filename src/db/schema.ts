@@ -6,10 +6,12 @@ import {
   index,
   uniqueIndex,
   primaryKey,
+  check,
   uuid,
   text,
   boolean,
   integer,
+  smallint,
   numeric,
   timestamp,
   date,
@@ -62,7 +64,7 @@ export const paymentPlanStatusEnum = pgEnum("payment_plan_status", [
   "completed",
   "cancelled",
 ]);
-export const installmentStatusEnum = pgEnum("installment_status", ["pending", "paid", "late", "cancelled"]);
+export const installmentStatusEnum = pgEnum("installment_status", ["pending", "paid", "late", "cancelled", "refunded"]);
 export const reminderMethodEnum = pgEnum("reminder_method", ["email", "sms", "push"]);
 // How far ahead of a task/installment's due_date it starts counting as
 // "upcoming" on Home and the per-event indicators — a display-filtering
@@ -73,6 +75,20 @@ export const reminderMethodEnum = pgEnum("reminder_method", ["email", "sms", "pu
 export const upcomingWindowEnum = pgEnum("upcoming_window", ["on_day", "one_day_before", "one_week_before"]);
 export const supportCaseStatusEnum = pgEnum("support_case_status", ["open", "pending", "resolved", "closed"]);
 export const supportCasePriorityEnum = pgEnum("support_case_priority", ["low", "normal", "high", "urgent"]);
+// The self-service "Report an Issue" form's category dropdown — grounded in
+// the actual features shipped so far (payments/installments, vendor quotes/
+// booking/chat, event/RSVP/budget/tasks, profile/vendor verification),
+// rather than a generic helpdesk taxonomy. Nullable on the table itself
+// (below) since the admin-logged path predates this and has no category to
+// backfill.
+export const supportCaseCategoryEnum = pgEnum("support_case_category", [
+  "payments_billing",
+  "vendor_booking",
+  "event_setup",
+  "account_verification",
+  "app_bug",
+  "other",
+]);
 
 // ---------------------------------------------------------------------------
 // Identity
@@ -201,6 +217,12 @@ export const events = pgTable(
     visibility: eventVisibilityEnum("visibility").notNull().default("private"),
     startAt: timestamp("start_at", { withTimezone: true }).notNull(),
     endAt: timestamp("end_at", { withTimezone: true }),
+    // Optional — a date, not a timestamptz, matching payment_plans.deposit_
+    // due_date's own "just a day, no meaningful time-of-day" treatment.
+    // Drives two things on the Attendees page: a countdown pill while it's
+    // still upcoming, and the headline number switching from "invited" to
+    // "attending" once it's passed (see isDateOverdue in lib/upcoming.ts).
+    rsvpDate: date("rsvp_date"),
     location: text("location"),
     description: text("description"),
     capacity: integer("capacity"),
@@ -247,6 +269,25 @@ export const events = pgTable(
       to: authenticatedRole,
       using: sql`public.is_event_pending_invitee(${table.id}, ${authUid})`,
     }),
+    // Gap found building the event-vendor chat feature: event_vendors
+    // itself already has a vendor-side SELECT branch
+    // (event_vendors_select_event_side_or_vendor_side), but events never
+    // did — so a vendor team member could see their own booking row while
+    // the event it points to stayed invisible for anything short of
+    // public+published (i.e. every real draft/private event mid-planning,
+    // which is most of them). This silently broke the vendor dashboard's
+    // own existing "events(name, start_at)" embed on its bookings list
+    // long before chat needed the same data — confirmed live via a real
+    // Playwright pass, not just by reading the policy list. Any active
+    // team member, no role filter, matching event_vendors' own vendor-side
+    // condition exactly (read access, not a management action).
+    pgPolicy("events_select_vendor_side", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.event_id = ${table.id} AND public.is_vendor_team_member(ev.vendor_id, ${authUid})
+      )`,
+    }),
     pgPolicy("events_insert_own", {
       for: "insert",
       to: authenticatedRole,
@@ -286,6 +327,22 @@ export const eventCollaborators = pgTable(
       for: "select",
       to: authenticatedRole,
       using: sql`${table.userId} = ${authUid} OR public.is_event_owner(${table.eventId}, ${authUid})`,
+    }),
+    // Gap found building the event-vendor chat feature, mirroring
+    // vendor_team_members_select_event_side below it in this same file: a
+    // vendor team member viewing a booking's chat needs to resolve "who is
+    // this event-side sender" (the owner, or any collaborator) to a
+    // display name, which means reading this table — but a vendor team
+    // member is neither that row's own user nor the event owner, so this
+    // stayed silently empty for them under the policy above alone. Scoped
+    // to events this vendor actually has a real booking with, not blanket
+    // visibility into any event's collaborator list.
+    pgPolicy("event_collaborators_select_vendor_side", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.event_id = ${table.eventId} AND public.is_vendor_team_member(ev.vendor_id, ${authUid})
+      )`,
     }),
     // Only the event owner or an existing accepted Editor may invite others.
     pgPolicy("event_collaborators_insert_owner_or_editor", {
@@ -441,6 +498,26 @@ export const vendors = pgTable(
     phone: text("phone"),
     website: text("website"),
     verificationStatus: vendorVerificationStatusEnum("verification_status").notNull().default("unclaimed"),
+    // A dedicated "storefront photo," separate from the gallery — one
+    // deliberate image a vendor sets, shown everywhere the vendor is listed
+    // (Home's teaser, the /vendors marketplace, their own profile), unlike
+    // vendor_gallery_images which is a whole album. Same owner/manager
+    // write access as name/description/phone/website (no verified-gate,
+    // unlike the gallery bucket) — a brand-new, not-yet-verified vendor
+    // should still be able to work on their profile completion score.
+    logoPath: text("logo_path"),
+    // Admin-curated paid-placement flag — boosts a vendor to the top of
+    // Home's teaser and the /vendors marketplace's Featured row. Genuinely
+    // column-protected, not just hidden from the vendor-facing edit form: a
+    // plain RLS row-policy can't restrict which *columns* an authorized
+    // update may touch, so supabase/migrations/00000000000015_... revokes
+    // the broad table-level UPDATE grant this table inherited and grants it
+    // back only on the columns a vendor should actually be able to write —
+    // is_featured (and verification_status, closing a latent gap found
+    // while doing this) both deliberately excluded. See that migration's
+    // own comment, and teachAndre/09 (the same lesson already learned once
+    // for profiles.is_admin, applied here for the same reason.
+    isFeatured: boolean("is_featured").notNull().default(false),
     createdBy: uuid("created_by").notNull().references(() => profiles.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -767,6 +844,25 @@ export const vendorTeamMembers = pgTable(
       to: authenticatedRole,
       using: sql`${table.userId} = ${authUid} OR public.is_vendor_team_member(${table.vendorId}, ${authUid})`,
     }),
+    // Gap found building the event-vendor chat feature, the mirror image
+    // of events_select_vendor_side above: a planner viewing a booking's
+    // chat needs to resolve "who is this vendor-side sender" to a display
+    // name, which means reading this table — but a planner is neither the
+    // team member's own row owner nor a fellow team member, so the policy
+    // above alone left this silently empty for them (no error, just a
+    // sender that could never be named — the RLS-filtered-select version
+    // of the same class of gap, confirmed the same way, live). Scoped
+    // tightly to vendors this event actually has a real booking with, not
+    // blanket visibility into any vendor's roster.
+    pgPolicy("vendor_team_members_select_event_side", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.vendor_id = ${table.vendorId} AND (
+          public.is_event_owner(ev.event_id, ${authUid}) OR public.is_event_collaborator(ev.event_id, ${authUid})
+        )
+      )`,
+    }),
     // Bootstrap case: a vendor's creator may insert exactly one row making
     // themselves Owner. Without this, a brand-new vendor could never get its
     // first team member at all — "only an existing Owner may add members"
@@ -1042,6 +1138,152 @@ export const paymentPlans = pgTable(
         )
       )`,
     }),
+    // Added for removeVendorFromEvent (events/[id]/vendors/[eventVendorId]/
+    // actions.ts): removing a vendor is a soft-remove on event_vendors
+    // itself (status -> 'rejected', see that file's own comment on why), but
+    // its payment plan is a real delete — hasPaidInstallment already blocks
+    // the whole removal while any installment is still actually paid, so by
+    // the time this policy is reached the plan can only hold pending/
+    // cancelled/refunded installments, nothing left worth preserving as an
+    // orphaned "removed vendor's plan" that would otherwise keep showing up
+    // everywhere the vendor picker/Budget page look for this event_vendor's
+    // plans. Same event-editor scope as insert/update above.
+    pgPolicy("payment_plans_delete_event_editor", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND (
+          public.is_event_owner(ev.event_id, ${authUid}) OR public.is_event_collaborator(ev.event_id, ${authUid}, 'editor')
+        )
+      )`,
+    }),
+  ],
+).enableRLS();
+
+// A chat ring-fenced to exactly one event_vendors row — a planner working
+// several vendors and a vendor working several events each only ever see
+// one thread per booking, never a cross-event/cross-vendor inbox. Same
+// EXISTS-against-event_vendors idiom as vendor_quotes/payment_plans above.
+// Unlike payment_plans (planner-only writes) this is bidirectional like
+// vendor_quotes, but unlike vendor_quotes' vendor-Manager+-only INSERT,
+// any active vendor team member can send — chat is day-to-day
+// communication, not a management action. `body`/`storagePath` are both
+// nullable (an image-only message has no text and vice versa); the "at
+// least one must be present" rule is validated in the Server Action, the
+// same layer this app already validates shape-of-input rules at (e.g.
+// budgetedAmount > 0), not a DB CHECK constraint. No UPDATE/DELETE policy
+// — messages are immutable in v1, the same posture event_vendors itself
+// already takes (no delete policy at all).
+export const eventVendorMessages = pgTable(
+  "event_vendor_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventVendorId: uuid("event_vendor_id")
+      .notNull()
+      .references(() => eventVendors.id, { onDelete: "cascade" }),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => profiles.id),
+    body: text("body"),
+    storagePath: text("storage_path"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("event_vendor_messages_event_vendor_id_idx").on(table.eventVendorId),
+    pgPolicy("event_vendor_messages_select_event_side_or_vendor_side", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND (
+          public.is_event_owner(ev.event_id, ${authUid})
+          OR public.is_event_collaborator(ev.event_id, ${authUid})
+          OR public.is_vendor_team_member(ev.vendor_id, ${authUid})
+        )
+      )`,
+    }),
+    // sender_id = authUid is the same self-row idiom
+    // notification_preferences_insert_own uses (this file, "profileId =
+    // authUid") — without it, anyone with write access on their own side
+    // could insert a message impersonating a different sender on that
+    // same side.
+    //
+    // The vendor-side branch also requires is_vendor_verified — a real gap
+    // found after shipping: vendor_team_members membership itself needs no
+    // verification at all (a vendor's own creator becomes its Owner team
+    // member immediately on creation, unclaimed/claim_pending included —
+    // vendor_team_members_insert_self_on_vendor_creation), so without this,
+    // literally anyone who creates a vendor stub could message any planner
+    // who links it to their event, with zero admin review in between.
+    // Matches the exact same is_vendor_verified gate
+    // vendor_gallery_images/vendor_social_links' own INSERT policies
+    // already use for vendor-side writes — this just extends it to chat.
+    // Deliberately asymmetric: the planner side has NO added verification
+    // check — a planner choosing to message a vendor they already linked
+    // to their own event is a planner-initiated, low-risk action (and the
+    // planner may have real pre-booking questions before a vendor is even
+    // claimed); it's an unverified vendor initiating contact that's the
+    // actual risk this closes.
+    pgPolicy("event_vendor_messages_insert_event_editor_or_vendor_member", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.senderId} = ${authUid} AND EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND (
+          public.is_event_owner(ev.event_id, ${authUid})
+          OR public.is_event_collaborator(ev.event_id, ${authUid}, 'editor')
+          OR (public.is_vendor_team_member(ev.vendor_id, ${authUid}) AND public.is_vendor_verified(ev.vendor_id))
+        )
+      )`,
+    }),
+  ],
+).enableRLS();
+
+// Per-user, per-thread "I've seen everything up to here" marker — what
+// powers the unread-count badges on the event's vendor list and the
+// vendor's own bookings list. One row per (thread, person), upserted by
+// markChatThreadRead whenever that person actually looks at the thread.
+// Composite PK, same shape as event_type_service_categories: the row
+// carries no payload beyond the pair (plus the one timestamp), and every
+// write already has both ids in hand.
+export const eventVendorChatReads = pgTable(
+  "event_vendor_chat_reads",
+  {
+    eventVendorId: uuid("event_vendor_id")
+      .notNull()
+      .references(() => eventVendors.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id),
+    lastReadAt: timestamp("last_read_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.eventVendorId, table.userId] }),
+    // Nobody but the reader themselves ever needs to see their own
+    // read-state — unlike event_vendor_messages, there's no "the other
+    // side can see it too" branch here at all.
+    pgPolicy("event_vendor_chat_reads_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
+    // Same EXISTS-against-event_vendors idiom as event_vendor_messages'
+    // own insert policy — you can only mark a thread read if you could
+    // actually see it in the first place.
+    pgPolicy("event_vendor_chat_reads_upsert_own", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.userId} = ${authUid} AND EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND (
+          public.is_event_owner(ev.event_id, ${authUid})
+          OR public.is_event_collaborator(ev.event_id, ${authUid})
+          OR public.is_vendor_team_member(ev.vendor_id, ${authUid})
+        )
+      )`,
+    }),
+    pgPolicy("event_vendor_chat_reads_update_own", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`${table.userId} = ${authUid}`,
+    }),
   ],
 ).enableRLS();
 
@@ -1058,6 +1300,15 @@ export const paymentInstallments = pgTable(
     paymentGateway: text("payment_gateway"),
     gatewayTransactionId: text("gateway_transaction_id"),
     gatewayStatus: text("gateway_status"),
+    // Andre's own ask: a proof-of-payment document (a bank EFT screenshot,
+    // an emailed receipt) attached directly to the installment it actually
+    // proves, "so it's not lost in a mailbox." Nullable — no backfill for
+    // existing rows, same tolerance this project already extends to other
+    // additive columns (vendor_gallery_images.caption,
+    // vendor_services.category_id). No new RLS policy needed on this table
+    // for it — the existing owner-or-editor UPDATE policy already covers
+    // writing it, same as paid_on/status already are.
+    proofOfPaymentPath: text("proof_of_payment_path"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
@@ -1099,11 +1350,18 @@ export const paymentInstallments = pgTable(
   ],
 ).enableRLS();
 
-// SELECT-only for now — reminders are an automated background-job feature
-// (the Salesforce build's hourly PaymentReminderScheduler) with no
-// scheduling infra chosen yet (see the stack table: Supabase Edge
-// Functions + pg_cron, or Inngest — still undecided). No UI creates these
-// yet, so INSERT/UPDATE/DELETE stay service-role-only until that phase.
+// Was SELECT-only, with no scheduling infra ever chosen (Supabase Edge
+// Functions + pg_cron vs. Inngest — still genuinely undecided). Rather than
+// wait on that decision, reminders are sent *implicitly*: whenever a
+// signed-in planner's own request would already show them an overdue/
+// due-soon installment (Home, My Events, the event page), a client-side
+// check fires once per app session and, for anything not already reminded,
+// sends the email and records it here itself — no cron, no scheduler,
+// nothing running when nobody's using the app. That's the one new access
+// pattern below: a planner can insert their own reminder-sent record for an
+// installment on an event they own or edit. Still no UPDATE/DELETE policy
+// (a sent reminder is never un-sent) and no vendor-side branch (matching
+// payment_installments' own planner-only write posture).
 export const paymentReminders = pgTable(
   "payment_reminders",
   {
@@ -1133,18 +1391,242 @@ export const paymentReminders = pgTable(
         )
       )`,
     }),
+    // The implicitly-triggered reminder check (checkAndSendPaymentReminders,
+    // called from ReminderChecker on the client) inserts as the signed-in
+    // planner themselves — contact_user_id pinned to auth.uid(), same
+    // self-only shape support_cases_insert_self uses, plus the same
+    // owner-or-editor-collaborator check payment_installments' own INSERT
+    // policy uses so a reminder can't be recorded against an event this
+    // user has no real write access to.
+    pgPolicy("payment_reminders_insert_self", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.contactUserId} = ${authUid} AND EXISTS (
+        SELECT 1 FROM payment_installments pi
+        JOIN payment_plans pp ON pp.id = pi.payment_plan_id
+        JOIN event_vendors ev ON ev.id = pp.event_vendor_id
+        WHERE pi.id = ${table.paymentInstallmentId} AND (
+          public.is_event_owner(ev.event_id, ${authUid}) OR public.is_event_collaborator(ev.event_id, ${authUid}, 'editor')
+        )
+      )`,
+    }),
+  ],
+).enableRLS();
+
+// The task-reminder twin of payment_reminders directly above — same
+// implicit-trigger shape (checkAndSendTaskReminders, called alongside the
+// payment check from the same <ReminderChecker>), same "record it so it's
+// never repeated" idempotency table, no scheduler either. One real
+// difference: event_tasks.assignedTo exists in the schema but nothing in
+// the app UI has ever set or read it (no assignment feature is actually
+// built yet) — so this deliberately doesn't try to be assignment-aware.
+// Instead it mirrors event_tasks' own SELECT policy exactly: a task is
+// visible to (and here, reminds) the owner or *any* collaborator, not just
+// an editor — a Viewer should still hear about a task coming due on an
+// event they're following, the same way Home's own Upcoming Tasks section
+// already shows it to them with no role filtering.
+export const taskReminders = pgTable(
+  "task_reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventTaskId: uuid("event_task_id")
+      .notNull()
+      .references(() => eventTasks.id, { onDelete: "cascade" }),
+    contactUserId: uuid("contact_user_id").references(() => profiles.id),
+    remindAt: timestamp("remind_at", { withTimezone: true }).notNull(),
+    method: reminderMethodEnum("method").notNull().default("email"),
+    sent: boolean("sent").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("task_reminders_event_task_id_idx").on(table.eventTaskId),
+    // Self-only — unlike payment_reminders' both-sides SELECT (a vendor
+    // legitimately cares whether *their own* payment was reminded about), a
+    // task reminder has no second party who'd ever need to read someone
+    // else's reminder record; only the reminder check itself, reading back
+    // its own prior writes, ever queries this.
+    pgPolicy("task_reminders_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.contactUserId} = ${authUid}`,
+    }),
+    pgPolicy("task_reminders_insert_self", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.contactUserId} = ${authUid} AND EXISTS (
+        SELECT 1 FROM event_tasks et
+        WHERE et.id = ${table.eventTaskId} AND (
+          public.is_event_owner(et.event_id, ${authUid}) OR public.is_event_collaborator(et.event_id, ${authUid})
+        )
+      )`,
+    }),
+  ],
+).enableRLS();
+
+// A planner's review of a completed booking — eligibility gated to
+// `status = 'contracted'` bookings only (chosen over "anyone who added the
+// vendor" so a review reflects an actual booking, not a browse), and to
+// *any* accepted collaborator on that event, not just an editor — reviewing
+// is closer to an opinion than a shared-plan edit, the same reasoning
+// task_reminders' own SELECT-scope comment already makes. One review per
+// (booking, reviewer) — a unique index, not just per-booking — so an owner
+// and a collaborator who both experienced the same booking can each leave
+// their own.
+//
+// `vendorId` IS denormalized here, deliberately reversing this table's own
+// original comment (which argued for joining through `event_vendors`
+// instead, the same shape `vendor_quotes`/`payment_plans` use) — that
+// reasoning turned out to miss something those tables don't share: a
+// PostgREST embed like `vendor_reviews!select(...event_vendors(...))` is a
+// real join, subject to the embedded table's OWN RLS, and `event_vendors`
+// is deliberately NOT public (only the event's own people or the vendor's
+// team can see a booking row) — while `vendor_reviews` itself IS meant to
+// be public. The result, caught by a real Playwright pass browsing as a
+// third party with no relationship to the reviewed booking: reviews
+// silently vanished for exactly the person the feature exists for, a
+// planner just browsing a vendor's profile. `vendorId` lets every read here
+// stay entirely within `vendor_reviews`' own public policy, no join to a
+// non-public table required. Both write policies re-verify it against the
+// booking's real `event_vendors.vendor_id` — same "the DB enforces it, not
+// just the app" posture as everything else in this file — so it can never
+// drift from the booking it's attached to despite being stored. No stored
+// rating average anywhere, though — that part of the original reasoning
+// still holds; `getVendorRatingSummary()` (src/lib/vendor-reviews.ts)
+// computes it fresh, the same "derive it, don't store a flag nothing
+// maintains" fix as vendor-completion's percent and installment
+// overdue-ness before it.
+export const vendorReviews = pgTable(
+  "vendor_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventVendorId: uuid("event_vendor_id")
+      .notNull()
+      .references(() => eventVendors.id, { onDelete: "cascade" }),
+    vendorId: uuid("vendor_id")
+      .notNull()
+      .references(() => vendors.id, { onDelete: "cascade" }),
+    reviewerId: uuid("reviewer_id")
+      .notNull()
+      .references(() => profiles.id),
+    rating: smallint("rating").notNull(),
+    reviewText: text("review_text"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("vendor_reviews_event_vendor_id_idx").on(table.eventVendorId),
+    index("vendor_reviews_vendor_id_idx").on(table.vendorId),
+    uniqueIndex("vendor_reviews_one_per_booking_reviewer").on(table.eventVendorId, table.reviewerId),
+    check("vendor_reviews_rating_range", sql`${table.rating} >= 1 AND ${table.rating} <= 5`),
+    // Public, like the vendor profile itself — a guest deciding whether to
+    // even start planning reads reviews the same way they'd read the
+    // Featured/Verified badges, no sign-in required.
+    pgPolicy("vendor_reviews_select_public", {
+      for: "select",
+      to: [authenticatedRole, anonRole],
+      using: sql`true`,
+    }),
+    pgPolicy("vendor_reviews_insert_self", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.reviewerId} = ${authUid} AND EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND ev.vendor_id = ${table.vendorId} AND ev.status = 'contracted' AND (
+          public.is_event_owner(ev.event_id, ${authUid}) OR public.is_event_collaborator(ev.event_id, ${authUid})
+        )
+      )`,
+    }),
+    // Edit-in-place, own review only. `using` alone (own row) previously let
+    // a forged PATCH retarget an existing review at a different booking or
+    // vendor with no eligibility check at all — a real gap, closed here
+    // with a matching `withCheck` that re-verifies the same
+    // contracted-booking condition INSERT already requires against the
+    // row's *new* values, the same way Postgres UPDATE policies are meant
+    // to combine the two clauses. No re-check of the booking's status
+    // beyond that (a booking that later moves off "contracted" shouldn't
+    // retract a review that was legitimately earned while it was) — only
+    // `vendor_id`/`event_vendor_id` integrity is being guarded here.
+    pgPolicy("vendor_reviews_update_own", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`${table.reviewerId} = ${authUid}`,
+      withCheck: sql`${table.reviewerId} = ${authUid} AND EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND ev.vendor_id = ${table.vendorId} AND ev.status = 'contracted' AND (
+          public.is_event_owner(ev.event_id, ${authUid}) OR public.is_event_collaborator(ev.event_id, ${authUid})
+        )
+      )`,
+    }),
+  ],
+).enableRLS();
+
+// The vendor's public reply — its own table, not two more columns on
+// vendor_reviews, deliberately: a shared-row UPDATE policy can't restrict
+// *which* columns each side may touch (RLS is row-scoped, not
+// column-scoped — the same limit `vendors.is_featured` needed a real
+// column-GRANT migration to work around), and unlike vendor_quotes' own
+// both-sides-can-update row (a negotiation both parties are meant to
+// shape), a review and its reply have adversarial incentives — a vendor
+// should never be one forged PATCH away from quietly editing a bad rating.
+// A separate table sidesteps that without needing a column-grant migration
+// at all: the reviewer can only ever write vendor_reviews, the vendor's
+// Owner/Manager team can only ever write vendor_review_replies.
+export const vendorReviewReplies = pgTable(
+  "vendor_review_replies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vendorReviewId: uuid("vendor_review_id")
+      .notNull()
+      .references(() => vendorReviews.id, { onDelete: "cascade" })
+      .unique(),
+    replyText: text("reply_text").notNull(),
+    repliedBy: uuid("replied_by")
+      .notNull()
+      .references(() => profiles.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    pgPolicy("vendor_review_replies_select_public", {
+      for: "select",
+      to: [authenticatedRole, anonRole],
+      using: sql`true`,
+    }),
+    pgPolicy("vendor_review_replies_insert_vendor_manager", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.repliedBy} = ${authUid} AND EXISTS (
+        SELECT 1 FROM vendor_reviews vr JOIN event_vendors ev ON ev.id = vr.event_vendor_id
+        WHERE vr.id = ${table.vendorReviewId} AND public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+      )`,
+    }),
+    // Any Owner/Manager teammate may edit the reply, not just whoever
+    // originally wrote it — the same "the vendor account manages it as a
+    // team" posture already used for services/social links/gallery.
+    pgPolicy("vendor_review_replies_update_vendor_manager", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`EXISTS (
+        SELECT 1 FROM vendor_reviews vr JOIN event_vendors ev ON ev.id = vr.event_vendor_id
+        WHERE vr.id = ${table.vendorReviewId} AND public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+      )`,
+    }),
   ],
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Phase 10 — Admin & Support Console
 // ---------------------------------------------------------------------------
-// See docs/gather_web_admin_architecture.md for the full design. All three
-// tables below are .enableRLS() with ZERO regular policies, deliberately —
-// there's no legitimate Planner/Vendor access pattern to design a policy
-// for (this is internal support tooling, and case notes can contain
-// sensitive discussion), so every table here starts, and stays, completely
-// locked down to authenticated/anon roles. The only way in is the
+// See docs/gather_web_admin_architecture.md for the full design. Originally
+// all three tables below were .enableRLS() with ZERO regular policies,
+// deliberately — cases were admin-logged only (a phone call, an email), and
+// case notes can carry sensitive internal discussion, so there was no
+// legitimate Planner/Vendor access pattern to design a policy for. That
+// changed the day self-service "Report an Issue" (Profile tab) shipped —
+// see the two new policies on supportCases below, added for exactly that. A
+// real access pattern now exists for that one table; support_case_comments
+// and admin_audit_log stay exactly as locked-down as before (a case's own
+// comment thread can still carry internal admin-to-admin discussion, so a
+// reporter seeing their own case's *status* is as far as this goes — no
+// comment visibility yet). The only way into the other two is still the
 // service-role client, used exclusively by code that has already passed
 // requireAdmin() (src/lib/admin/require-admin.ts) — the same "service role
 // instead of policy sprawl" reasoning as the guest-RSVP path, just with a
@@ -1159,6 +1641,16 @@ export const supportCases = pgTable(
     description: text("description"),
     status: supportCaseStatusEnum("status").notNull().default("open"),
     priority: supportCasePriorityEnum("priority").notNull().default("normal"),
+    // Nullable: only ever set by the self-service form — the pre-existing
+    // admin-logged path (a phone call, an email) has no natural category to
+    // backfill and doesn't ask for one.
+    category: supportCaseCategoryEnum("category"),
+    // The optional screenshot from "Report an Issue" — same single-current-
+    // file shape as payment_installments.proof_of_payment_path, just scoped
+    // to the reporting user's own storage folder rather than a record id,
+    // since the case row doesn't exist yet at the moment of upload (see the
+    // support-case-attachments bucket migration for why).
+    attachmentPath: text("attachment_path"),
     requesterId: uuid("requester_id").references(() => profiles.id),
     relatedEventId: uuid("related_event_id").references(() => events.id),
     relatedVendorId: uuid("related_vendor_id").references(() => vendors.id),
@@ -1176,6 +1668,26 @@ export const supportCases = pgTable(
     index("support_cases_related_event_id_idx").on(table.relatedEventId),
     index("support_cases_related_vendor_id_idx").on(table.relatedVendorId),
     index("support_cases_assigned_admin_id_idx").on(table.assignedAdminId),
+    // Self-service create: a signed-in user can log a case about their own
+    // account, as themselves only — created_by and requester_id both pinned
+    // to auth.uid() so nobody can file a case *as* someone else or leave the
+    // requester unset (the admin-logged path leaves requester_id null for a
+    // general platform issue with no known reporter; that path still goes
+    // through the service-role client, which bypasses RLS entirely, so this
+    // NOT NULL-ish check here only ever constrains the self-service form).
+    pgPolicy("support_cases_insert_self", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.createdBy} = ${authUid} AND ${table.requesterId} = ${authUid}`,
+    }),
+    // Self-service read: a reporter can see their own case's status/details
+    // (so "Report an Issue" has somewhere to show "we got it, here's where
+    // it stands") — not the comment thread, which stays admin-only.
+    pgPolicy("support_cases_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.requesterId} = ${authUid}`,
+    }),
   ],
 ).enableRLS();
 

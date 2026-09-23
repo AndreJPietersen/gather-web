@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BackButton } from "@/components/ui/back-button";
+import { Users, ListTodo, Store, Wallet, PiggyBank, Image as ImageIcon } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
-import { formatEventDateTime } from "@/lib/utils";
+import { formatEventDateTime, getCountdownRemaining } from "@/lib/utils";
+import { isInstallmentOverdue } from "@/lib/upcoming";
 import { RsvpForm } from "./rsvp-form";
 import { InviteCollaboratorForm } from "./invite-collaborator-form";
+import { CountdownCard } from "./countdown-card";
 import { getEventAccess } from "./access";
 
 interface EventDetail {
@@ -54,6 +57,7 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
   } = await supabase.auth.getUser();
   const access = await getEventAccess(event.id, event.owner_id, user?.id ?? null);
   const isManagementView = access.isOwner || access.isCollaborator;
+  const countdown = getCountdownRemaining(event.start_at);
 
   let collaborators: CollaboratorRow[] = [];
   if (access.isOwner) {
@@ -73,11 +77,35 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
     collaborators = data ?? [];
   }
 
+  // Feeds only the Payments tile's small overdue badge below — deliberately
+  // not the "due soon but not yet overdue" case too, which is already well
+  // covered by Home and My Events; a compact icon tile only needs to
+  // interrupt for something actually urgent. A two-hop query (event_vendors
+  // -> payment_plans -> installments), the same "flat query, no RPC" shape
+  // this app's other cross-table checks already use, rather than filtering
+  // every pending installment in the system down to this one event's.
+  let hasOverduePayment = false;
+  if (isManagementView) {
+    const { data: eventVendorIds } = await supabase.from("event_vendors").select("id").eq("event_id", event.id);
+    const evIds = (eventVendorIds ?? []).map((ev) => ev.id);
+    if (evIds.length > 0) {
+      const { data: planIds } = await supabase.from("payment_plans").select("id").in("event_vendor_id", evIds);
+      const pIds = (planIds ?? []).map((p) => p.id);
+      if (pIds.length > 0) {
+        const { data: pendingInstallments } = await supabase
+          .from("payment_installments")
+          .select("status, due_date")
+          .eq("status", "pending")
+          .in("payment_plan_id", pIds)
+          .returns<{ status: string; due_date: string }[]>();
+        hasOverduePayment = (pendingInstallments ?? []).some((i) => isInstallmentOverdue(i.status, i.due_date));
+      }
+    }
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <h1 className="font-display text-3xl font-semibold text-ink">{event.name}</h1>
+      <PageHeader title={event.name}>
         {isManagementView && (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="rounded-pill bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold uppercase text-primary">
@@ -92,7 +120,15 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
           {formatEventDateTime(event.start_at)}
           {event.location ? ` · ${event.location}` : ""}
         </p>
-      </div>
+      </PageHeader>
+
+      {/* Shown to guests too, not just the management view — deliberately
+          outside the isManagementView branch below, same as the date/
+          location line above it. Only rendered at all when start_at is
+          still in the future; a countdown to a past event isn't useful,
+          and CountdownCard itself makes the same call client-side if the
+          event arrives while the tab is left open. */}
+      {!countdown.done && <CountdownCard targetIso={event.start_at} initial={countdown} />}
 
       {event.description && (
         <Card>
@@ -108,42 +144,68 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
             </Link>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
+          {/* "Colorful tint grid" — one of 4 directions sketched on the Event
+              Nav Options design canvas, picked by Andre over a neutral
+              icon-tile grid, list rows, and a lightly-updated version of the
+              plain pill grid this replaces. Each tile's background is a full
+              soft-accent tint (not just a small icon badge), rotating
+              through the 3 theme tokens every page already has
+              (primary-soft/secondary-soft/success-soft) so the grid reads
+              correctly in all 3 color themes with zero per-tile overrides.
+              text-ink (not text-secondary) on the two secondary-soft tiles
+              is deliberate, not an inconsistency with the primary/success
+              tiles: --color-secondary is a light, low-contrast yellow in
+              every theme, so an icon drawn in it directly would be barely
+              visible against its own equally-light soft background. */}
+          <div className="grid grid-cols-2 gap-2.5">
             <Link
-              href={`/events/${event.id}/attendees`}
-              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+              href={`/events/${event.id}/budget`}
+              className="flex flex-col gap-3 rounded-[20px] bg-primary-soft p-4"
             >
-              Attendees
+              <PiggyBank size={24} strokeWidth={2} className="text-primary" />
+              <span className="text-[13px] font-extrabold text-ink">Budget</span>
             </Link>
             <Link
-              href={`/events/${event.id}/tasks`}
-              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+              href={`/events/${event.id}/attendees`}
+              className="flex flex-col gap-3 rounded-[20px] bg-secondary-soft p-4"
             >
-              Tasks
+              <Users size={24} strokeWidth={2} className="text-ink" />
+              <span className="text-[13px] font-extrabold text-ink">Attendees</span>
             </Link>
             <Link
               href={`/events/${event.id}/vendors`}
-              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+              className="flex flex-col gap-3 rounded-[20px] bg-success-soft p-4"
             >
-              Vendors
+              <Store size={24} strokeWidth={2} className="text-success" />
+              <span className="text-[13px] font-extrabold text-ink">Vendors</span>
             </Link>
             <Link
               href={`/events/${event.id}/payments`}
-              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+              className="relative flex flex-col gap-3 rounded-[20px] bg-primary-soft p-4"
             >
-              Payments
+              {hasOverduePayment && (
+                <span
+                  title="Has an overdue payment"
+                  aria-label="Has an overdue payment"
+                  className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-primary"
+                />
+              )}
+              <Wallet size={24} strokeWidth={2} className="text-primary" />
+              <span className="text-[13px] font-extrabold text-ink">Payments</span>
             </Link>
             <Link
-              href={`/events/${event.id}/budget`}
-              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+              href={`/events/${event.id}/tasks`}
+              className="flex flex-col gap-3 rounded-[20px] bg-secondary-soft p-4"
             >
-              Budget
+              <ListTodo size={24} strokeWidth={2} className="text-ink" />
+              <span className="text-[13px] font-extrabold text-ink">Tasks</span>
             </Link>
             <Link
               href={`/events/${event.id}/gallery`}
-              className="rounded-pill border-2 border-border bg-surface px-4 py-2.5 text-center text-xs font-extrabold text-text"
+              className="flex flex-col gap-3 rounded-[20px] bg-success-soft p-4"
             >
-              Gallery
+              <ImageIcon size={24} strokeWidth={2} className="text-success" />
+              <span className="text-[13px] font-extrabold text-ink">Gallery</span>
             </Link>
           </div>
 

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { isoToSastInput } from "@/lib/utils";
 import { EventForm } from "../../event-form";
@@ -14,6 +14,7 @@ interface EditableEvent {
   event_type_id: string | null;
   start_at: string;
   end_at: string | null;
+  rsvp_date: string | null;
   location: string | null;
   description: string | null;
   visibility: "public" | "private" | "invite_only";
@@ -34,7 +35,7 @@ export default async function EditEventPage({ params }: PageProps<"/events/[id]/
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, owner_id, name, event_type, event_type_id, start_at, end_at, location, description, visibility, capacity, budget_total, budget_warning_percent, status",
+      "id, owner_id, name, event_type, event_type_id, start_at, end_at, rsvp_date, location, description, visibility, capacity, budget_total, budget_warning_percent, status",
     )
     .eq("id", id)
     .maybeSingle<EditableEvent>();
@@ -56,10 +57,7 @@ export default async function EditEventPage({ params }: PageProps<"/events/[id]/
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <h1 className="font-display text-3xl font-semibold text-ink">Edit Event</h1>
-      </div>
+      <PageHeader title="Edit Event" />
       <EventForm
         action={updateEvent}
         eventId={event.id}
@@ -71,6 +69,7 @@ export default async function EditEventPage({ params }: PageProps<"/events/[id]/
           eventTypeOther: event.event_type_id ? undefined : (event.event_type ?? undefined),
           startAt: isoToSastInput(event.start_at),
           endAt: isoToSastInput(event.end_at),
+          rsvpDate: event.rsvp_date,
           location: event.location ?? "",
           description: event.description ?? "",
           visibility: event.visibility,

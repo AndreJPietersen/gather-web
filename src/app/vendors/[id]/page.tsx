@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Quote } from "lucide-react";
-import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
+import { LinkButton } from "@/components/ui/button";
 import { VerificationBadge } from "@/components/vendor/verification-badge";
+import { VendorAvatar } from "@/components/vendor/vendor-avatar";
+import { RatingSummaryCard } from "@/components/vendor/rating-summary-card";
+import { ReviewCard } from "@/components/vendor/review-card";
 import { createClient } from "@/lib/supabase/server";
+import { getVendorRatingSummary, getVendorReviews, getEligibleBookingForReview } from "@/lib/vendor-reviews";
 import { AssociateEventForm } from "./associate-event-form";
 import { VendorGalleryCarousel } from "./vendor-gallery-carousel";
 
@@ -16,6 +21,8 @@ interface VendorDetail {
   phone: string | null;
   website: string | null;
   verification_status: "unclaimed" | "claim_pending" | "verified";
+  is_featured: boolean;
+  logo_path: string | null;
 }
 
 interface SocialLinkRow {
@@ -41,13 +48,15 @@ export default async function VendorProfilePage({ params }: PageProps<"/vendors/
 
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("id, name, primary_category, description, phone, website, verification_status")
+    .select("id, name, primary_category, description, phone, website, verification_status, is_featured, logo_path")
     .eq("id", id)
     .maybeSingle<VendorDetail>();
 
   if (!vendor) {
     notFound();
   }
+
+  const logoUrl = vendor.logo_path ? supabase.storage.from("vendor-logos").getPublicUrl(vendor.logo_path).data.publicUrl : null;
 
   const {
     data: { user },
@@ -58,6 +67,12 @@ export default async function VendorProfilePage({ params }: PageProps<"/vendors/
     const { data } = await supabase.from("events").select("id, name").eq("owner_id", user.id).order("start_at", { ascending: true });
     myEvents = data ?? [];
   }
+
+  const [ratingSummary, reviews, eligibleBooking] = await Promise.all([
+    getVendorRatingSummary(supabase, vendor.id),
+    getVendorReviews(supabase, vendor.id, 3),
+    user ? getEligibleBookingForReview(supabase, vendor.id, user.id) : Promise.resolve(null),
+  ]);
 
   // Social links/gallery are only ever populated for verified vendors (RLS
   // gates writes to that status), so skip the queries entirely rather than
@@ -80,14 +95,48 @@ export default async function VendorProfilePage({ params }: PageProps<"/vendors/
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <h1 className="font-display text-3xl font-semibold text-ink">{vendor.name}</h1>
-        <VerificationBadge verified={vendor.verification_status === "verified"} description={vendor.description} />
-        {vendor.primary_category && (
-          <p className="mt-1 text-sm font-semibold text-text-muted">{vendor.primary_category}</p>
-        )}
-      </div>
+      <PageHeader
+        title={vendor.name}
+        action={
+          <VendorAvatar
+            name={vendor.name}
+            category={vendor.primary_category}
+            verified={vendor.verification_status === "verified"}
+            logoUrl={logoUrl}
+            size={44}
+            radius={14}
+          />
+        }
+      >
+        <div className="flex flex-wrap items-center gap-1.5">
+          <VerificationBadge verified={vendor.verification_status === "verified"} description={vendor.description} />
+          {vendor.is_featured && (
+            <span className="flex items-center gap-1 rounded-pill bg-secondary px-2 py-0.5 text-[10px] font-extrabold uppercase text-ink">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="var(--color-ink)">
+                <polygon points="12 2 15.09 8.63 22 9.24 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.24 8.91 8.63 12 2"></polygon>
+              </svg>
+              Featured
+            </span>
+          )}
+        </div>
+        {vendor.primary_category && <p className="text-sm font-semibold text-text-muted">{vendor.primary_category}</p>}
+      </PageHeader>
+
+      {/* Moved up from the bottom of the page (Andre's own feedback — it
+          used to sit below the whole Reviews section, which had pushed it
+          out of view without scrolling past everything else first). Adding
+          a vendor to an event is the primary action this page exists for a
+          signed-in planner to take, so it now sits right under the header,
+          before anything that's informing the decision rather than acting
+          on it. */}
+      {myEvents.length > 0 && (
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink">Add to an event</h2>
+          <div className="mt-3">
+            <AssociateEventForm vendorId={vendor.id} events={myEvents} />
+          </div>
+        </div>
+      )}
 
       {galleryImages.length > 0 && (
         <div className="-mx-6">
@@ -140,12 +189,33 @@ export default async function VendorProfilePage({ params }: PageProps<"/vendors/
         </Link>
       )}
 
-      {myEvents.length > 0 && (
+      <RatingSummaryCard summary={ratingSummary} title="Reviews">
         <div>
-          <h2 className="font-display text-lg font-semibold text-ink">Add to an event</h2>
-          <div className="mt-3">
-            <AssociateEventForm vendorId={vendor.id} events={myEvents} />
-          </div>
+          {eligibleBooking ? (
+            <LinkButton href={`/vendors/${vendor.id}/reviews/write`} variant="primary" className="w-full">
+              {eligibleBooking.existingReview ? "Edit Your Review" : "Write a Review"}
+            </LinkButton>
+          ) : (
+            <p className="text-center text-[11px] font-semibold text-text-muted">
+              You can review a vendor once your booking with them is confirmed.
+            </p>
+          )}
+        </div>
+      </RatingSummaryCard>
+
+      {reviews.length > 0 && (
+        <div className="flex flex-col gap-2.5">
+          {reviews.map((review) => (
+            <ReviewCard key={review.id} review={review} />
+          ))}
+          {ratingSummary.count > reviews.length && (
+            <Link
+              href={`/vendors/${vendor.id}/reviews`}
+              className="rounded-pill border-2 border-border bg-surface px-4 py-3.5 text-center text-[14.5px] font-extrabold text-text"
+            >
+              See all {ratingSummary.count} reviews
+            </Link>
+          )}
         </div>
       )}
     </main>

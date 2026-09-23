@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BackButton } from "@/components/ui/back-button";
-import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, LinkCard } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
 import { formatZAR } from "@/lib/utils";
 import { getEventAccess } from "../access";
 import { DEFAULT_BUDGET_WARNING_PERCENT } from "../../budget-constants";
-import { AddBudgetItemForm } from "./add-budget-item-form";
 import { BudgetItemRow, type BudgetItem } from "./budget-item-row";
 
 interface BudgetItemRowData {
@@ -35,12 +34,13 @@ export default async function EventBudgetPage({ params }: PageProps<"/events/[id
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, owner_id, name, budget_total, budget_warning_percent")
+    .select("id, owner_id, name, event_type_id, budget_total, budget_warning_percent")
     .eq("id", id)
     .maybeSingle<{
       id: string;
       owner_id: string;
       name: string;
+      event_type_id: string | null;
       budget_total: string | null;
       budget_warning_percent: number | null;
     }>();
@@ -65,13 +65,37 @@ export default async function EventBudgetPage({ params }: PageProps<"/events/[id
       .eq("event_id", event.id)
       .order("created_at", { ascending: true })
       .returns<BudgetItemRowData[]>(),
+    // Excludes 'rejected' — same filter the Vendors list page applies, so a
+    // removed vendor (soft-removed, never actually deleted — see
+    // removeVendorFromEvent) can't be picked again from "Link a vendor" on
+    // a budget line.
     supabase
       .from("event_vendors")
       .select("id, confirmed, vendors(name)")
       .eq("event_id", event.id)
+      .neq("status", "rejected")
       .returns<{ id: string; confirmed: boolean; vendors: { name: string } | null }[]>(),
     supabase.from("service_categories").select("id, name").eq("is_active", true).order("name"),
   ]);
+
+  // Answers "why is this over/under budget" from the budget item's own
+  // point of view, not just the payment plan's: an accepted quote and
+  // payment_plans.total_amount (what committed_amount below is actually
+  // summed from) are two independently hand-typed numbers with nothing
+  // keeping them in sync — see the matching comment + warning on the
+  // vendor detail page (events/[id]/vendors/[eventVendorId]/page.tsx),
+  // which surfaces the exact same mismatch from the other side.
+  const linkedEventVendorIds = (items ?? []).map((it) => it.event_vendor_id).filter((v): v is string => v !== null);
+  let acceptedQuoteByEventVendor = new Map<string, number>();
+  if (linkedEventVendorIds.length > 0) {
+    const { data: acceptedQuotes } = await supabase
+      .from("vendor_quotes")
+      .select("event_vendor_id, amount")
+      .eq("status", "accepted")
+      .in("event_vendor_id", linkedEventVendorIds)
+      .returns<{ event_vendor_id: string; amount: string }[]>();
+    acceptedQuoteByEventVendor = new Map((acceptedQuotes ?? []).map((q) => [q.event_vendor_id, Number(q.amount)]));
+  }
 
   const budgetItems: BudgetItem[] = (items ?? []).map((it) => ({
     id: it.id,
@@ -83,22 +107,36 @@ export default async function EventBudgetPage({ params }: PageProps<"/events/[id
     vendor_name: it.event_vendors?.vendors?.name ?? null,
     vendor_confirmed: it.event_vendors?.confirmed ?? null,
     committed_amount: (it.payment_plans ?? []).reduce((sum, p) => sum + Number(p.total_amount), 0),
+    accepted_quote_amount: it.event_vendor_id ? (acceptedQuoteByEventVendor.get(it.event_vendor_id) ?? null) : null,
   }));
 
   const availableVendors = (eventVendors ?? []).map((v) => ({ id: v.id, name: v.vendors?.name ?? "Vendor" }));
 
   // Every payment plan for this event's vendors, regardless of budget-item
-  // tagging — see the file-level comment above for why.
+  // tagging — see the file-level comment above for why. Grouped by vendor
+  // (not just summed) so the header's total can be broken down into "where
+  // did this number come from" — the same total shown two ways, since
+  // there's no requirement a vendor have only one plan.
   const eventVendorIds = (eventVendors ?? []).map((v) => v.id);
   let totalCommitted = 0;
+  const committedByEventVendor = new Map<string, number>();
   if (eventVendorIds.length > 0) {
     const { data: allPlans } = await supabase
       .from("payment_plans")
-      .select("total_amount")
+      .select("event_vendor_id, total_amount")
       .in("event_vendor_id", eventVendorIds)
-      .returns<{ total_amount: string }[]>();
-    totalCommitted = (allPlans ?? []).reduce((sum, p) => sum + Number(p.total_amount), 0);
+      .returns<{ event_vendor_id: string; total_amount: string }[]>();
+    for (const p of allPlans ?? []) {
+      const amount = Number(p.total_amount);
+      totalCommitted += amount;
+      committedByEventVendor.set(p.event_vendor_id, (committedByEventVendor.get(p.event_vendor_id) ?? 0) + amount);
+    }
   }
+
+  const committedBreakdown = (eventVendors ?? [])
+    .map((v) => ({ id: v.id, name: v.vendors?.name ?? "Vendor", amount: committedByEventVendor.get(v.id) ?? 0 }))
+    .filter((v) => v.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
 
   const budgetTotal = event.budget_total ? Number(event.budget_total) : null;
   const warningPercent = event.budget_warning_percent ?? DEFAULT_BUDGET_WARNING_PERCENT;
@@ -106,10 +144,17 @@ export default async function EventBudgetPage({ params }: PageProps<"/events/[id
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <h1 className="font-display text-3xl font-semibold text-ink">Budget</h1>
-        <p className="mt-1 text-sm font-semibold text-text-muted">{event.name}</p>
+      <PageHeader
+        title="Budget"
+        action={
+          access.isEditor && (
+            <Link href={`/events/${event.id}/budget/add`} className="rounded-pill bg-primary px-4 py-2 text-xs font-extrabold text-white">
+              + Add
+            </Link>
+          )
+        }
+      >
+        <p className="text-sm font-semibold text-text-muted">{event.name}</p>
         <p className="text-2xl font-extrabold text-ink">
           {formatZAR(totalCommitted)} <span className="text-base font-semibold text-text-muted">committed</span>
         </p>
@@ -124,7 +169,30 @@ export default async function EventBudgetPage({ params }: PageProps<"/events/[id
             </Link>
           )
         )}
-      </div>
+      </PageHeader>
+
+      {committedBreakdown.length > 0 && (
+        <details className="group rounded-[22px] bg-surface p-4 shadow-[0_6px_16px_-8px_var(--color-ink)]">
+          <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-extrabold text-text marker:content-none">
+            Where the committed amount comes from
+            <span className="shrink-0 text-text-muted transition-transform group-open:rotate-180" aria-hidden>
+              ▾
+            </span>
+          </summary>
+          <div className="mt-3 flex flex-col gap-2">
+            {committedBreakdown.map((v) => (
+              <Link
+                key={v.id}
+                href={`/events/${event.id}/payments?vendor=${v.id}`}
+                className="flex items-center justify-between gap-2 rounded-field bg-bg px-3 py-2"
+              >
+                <span className="truncate text-xs font-bold text-text">{v.name}</span>
+                <span className="shrink-0 text-xs font-extrabold text-primary">{formatZAR(v.amount)}</span>
+              </Link>
+            ))}
+          </div>
+        </details>
+      )}
 
       {budgetTotal !== null && pctUsed !== null && pctUsed >= 100 && (
         <Card className="bg-primary-soft">
@@ -141,8 +209,6 @@ export default async function EventBudgetPage({ params }: PageProps<"/events/[id
         </Card>
       )}
 
-      {access.isEditor && <AddBudgetItemForm eventId={event.id} categories={categories ?? []} />}
-
       <StaggerList className="flex flex-col gap-2">
         {budgetItems.length > 0 ? (
           budgetItems.map((item) => (
@@ -156,6 +222,10 @@ export default async function EventBudgetPage({ params }: PageProps<"/events/[id
               />
             </StaggerItem>
           ))
+        ) : access.isEditor ? (
+          <LinkCard href={`/events/${event.id}/budget/add`}>
+            <p className="text-sm font-semibold text-text-muted">No budget items yet — tap to add one.</p>
+          </LinkCard>
         ) : (
           <Card>
             <p className="text-sm font-semibold text-text-muted">No budget items yet.</p>

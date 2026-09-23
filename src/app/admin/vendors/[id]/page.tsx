@@ -5,7 +5,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { Card, LinkCard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatZAR } from "@/lib/utils";
-import { markVendorVerified } from "./actions";
+import { markVendorVerified, toggleVendorFeatured } from "./actions";
 
 interface VendorDetail {
   id: string;
@@ -14,6 +14,7 @@ interface VendorDetail {
   verification_status: "unclaimed" | "claim_pending" | "verified";
   phone: string | null;
   website: string | null;
+  is_featured: boolean;
   created_at: string;
 }
 
@@ -55,7 +56,7 @@ export default async function AdminVendorDetailPage({ params }: PageProps<"/admi
 
   const { data: vendor } = await service
     .from("vendors")
-    .select("id, name, primary_category, verification_status, phone, website, created_at")
+    .select("id, name, primary_category, verification_status, phone, website, is_featured, created_at")
     .eq("id", id)
     .maybeSingle<VendorDetail>();
 
@@ -107,14 +108,23 @@ export default async function AdminVendorDetailPage({ params }: PageProps<"/admi
         </p>
       </div>
 
-      {vendor.verification_status !== "verified" && (
-        <form action={markVendorVerified}>
+      <div className="flex flex-wrap gap-2">
+        {vendor.verification_status !== "verified" && (
+          <form action={markVendorVerified}>
+            <input type="hidden" name="vendorId" value={vendor.id} />
+            <Button type="submit" variant="secondary">
+              Mark Verified
+            </Button>
+          </form>
+        )}
+        <form action={toggleVendorFeatured}>
           <input type="hidden" name="vendorId" value={vendor.id} />
-          <Button type="submit" variant="secondary">
-            Mark Verified
+          <input type="hidden" name="featured" value={(!vendor.is_featured).toString()} />
+          <Button type="submit" variant={vendor.is_featured ? "primary" : "secondary"}>
+            {vendor.is_featured ? "★ Featured — remove" : "☆ Feature this vendor"}
           </Button>
         </form>
-      )}
+      </div>
 
       <div>
         <h2 className="font-display text-lg font-semibold text-ink">Services ({services?.length ?? 0})</h2>

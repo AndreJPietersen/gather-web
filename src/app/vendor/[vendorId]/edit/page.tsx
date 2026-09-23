@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
-import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { getVendorAccess } from "../access";
 import { EditVendorForm } from "./edit-vendor-form";
+import { LogoUploadForm } from "./logo-upload-form";
+import { ProfileCompletionCard } from "../dashboard/profile-completion-card";
 
 interface EditableVendor {
   id: string;
@@ -12,6 +14,7 @@ interface EditableVendor {
   phone: string | null;
   website: string | null;
   verification_status: "unclaimed" | "claim_pending" | "verified";
+  logo_path: string | null;
   created_by: string;
 }
 
@@ -27,7 +30,7 @@ export default async function EditVendorPage({ params }: PageProps<"/vendor/[ven
 
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("id, name, primary_category, description, phone, website, verification_status, created_by")
+    .select("id, name, primary_category, description, phone, website, verification_status, logo_path, created_by")
     .eq("id", vendorId)
     .maybeSingle<EditableVendor>();
 
@@ -46,20 +49,45 @@ export default async function EditVendorPage({ params }: PageProps<"/vendor/[ven
     notFound();
   }
 
+  const logoUrl = vendor.logo_path ? supabase.storage.from("vendor-logos").getPublicUrl(vendor.logo_path).data.publicUrl : null;
+
+  // Only fetched for the completion checklist below — access.role is
+  // already known to be owner/manager here (canEdit), same tier the
+  // checklist was always gated to on the old dashboard.
+  const [{ data: galleryImages }, { data: services }, { data: socialLinks }] = await Promise.all([
+    supabase.from("vendor_gallery_images").select("id").eq("vendor_id", vendorId),
+    supabase.from("vendor_services").select("id").eq("vendor_id", vendorId),
+    supabase.from("vendor_social_links").select("id").eq("vendor_id", vendorId),
+  ]);
+
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <h1 className="font-display text-3xl font-semibold text-ink">Edit Business Details</h1>
-      </div>
-      <EditVendorForm
+      <PageHeader title="Edit Business Details" />
+
+      <ProfileCompletionCard
         vendorId={vendor.id}
-        name={vendor.name}
-        primaryCategory={vendor.primary_category ?? ""}
-        description={vendor.description ?? ""}
-        phone={vendor.phone ?? ""}
-        website={vendor.website ?? ""}
+        input={{
+          logoPath: vendor.logo_path,
+          description: vendor.description,
+          galleryCount: galleryImages?.length ?? 0,
+          servicesCount: services?.length ?? 0,
+          socialLinksCount: socialLinks?.length ?? 0,
+        }}
       />
+
+      <div id="logo">
+        <LogoUploadForm vendorId={vendor.id} logoUrl={logoUrl} />
+      </div>
+      <div id="description">
+        <EditVendorForm
+          vendorId={vendor.id}
+          name={vendor.name}
+          primaryCategory={vendor.primary_category ?? ""}
+          description={vendor.description ?? ""}
+          phone={vendor.phone ?? ""}
+          website={vendor.website ?? ""}
+        />
+      </div>
     </main>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BackButton } from "@/components/ui/back-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,15 +47,9 @@ export default async function AddVendorPage({ searchParams }: PageProps<"/vendor
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">
-      <div className="flex flex-col gap-2">
-        <BackButton />
-        <div>
-          <h1 className="font-display text-3xl font-semibold text-ink">Add a Vendor</h1>
-          <p className="mt-1 text-sm font-semibold text-text-muted">
-            Search first to make sure they&apos;re not already listed.
-          </p>
-        </div>
-      </div>
+      <PageHeader title="Add a Vendor">
+        <p className="text-sm font-semibold text-text-muted">Search first to make sure they&apos;re not already listed.</p>
+      </PageHeader>
 
       <form method="get" className="flex gap-2">
         <Input name="q" defaultValue={query} placeholder="Vendor name" className="flex-1" required />

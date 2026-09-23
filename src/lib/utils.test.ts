@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cn, formatEventDateTime, formatZAR, isoToSastInput, sastInputToIso } from "./utils";
+import { cn, formatEventDateTime, formatZAR, getCountdownRemaining, isoToSastInput, sastInputToIso } from "./utils";
 
 describe("cn", () => {
   it("merges conditional class names", () => {
@@ -51,5 +51,31 @@ describe("formatEventDateTime", () => {
     // should reflect SAST (UTC+2), not the local system timezone.
     const formatted = formatEventDateTime("2027-01-10T13:00:00.000Z");
     expect(formatted).toContain("15:00");
+  });
+});
+
+describe("getCountdownRemaining", () => {
+  const now = new Date("2027-01-01T00:00:00.000Z").getTime();
+
+  it("splits a future timestamp into days/hours/minutes/seconds", () => {
+    // 2 days, 3 hours, 4 minutes, 5 seconds out.
+    const target = new Date(now + 2 * 86_400_000 + 3 * 3_600_000 + 4 * 60_000 + 5_000).toISOString();
+    expect(getCountdownRemaining(target, now)).toEqual({ days: 2, hours: 3, minutes: 4, seconds: 5, done: false });
+  });
+
+  it("reports done for a timestamp exactly now", () => {
+    expect(getCountdownRemaining(new Date(now).toISOString(), now).done).toBe(true);
+  });
+
+  it("reports done for a past timestamp, never negative values", () => {
+    const target = new Date(now - 60_000).toISOString();
+    expect(getCountdownRemaining(target, now)).toEqual({ days: 0, hours: 0, minutes: 0, seconds: 0, done: true });
+  });
+
+  it("defaults to the real current time when nowMs is omitted", () => {
+    const soon = new Date(Date.now() + 60_000).toISOString();
+    const result = getCountdownRemaining(soon);
+    expect(result.done).toBe(false);
+    expect(result.days).toBe(0);
   });
 });
