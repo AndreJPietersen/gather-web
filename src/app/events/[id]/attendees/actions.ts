@@ -4,13 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-
-const schema = z.object({
-  eventId: z.string().uuid(),
-  name: z.string().trim().min(2, "Name is too short").max(100),
-  email: z.string().trim().email("That doesn't look like a valid email").max(200).optional().or(z.literal("")),
-  guestCount: z.coerce.number().int().min(0).max(20),
-});
+import { attendeeSchema } from "./schema";
 
 export interface AttendeeFormState {
   error?: string;
@@ -22,7 +16,7 @@ export interface AttendeeFormState {
 // RLS as the real signed-in user; event_attendees_insert_owner_or_editor
 // gates it.
 export async function addAttendee(_prevState: AttendeeFormState, formData: FormData): Promise<AttendeeFormState> {
-  const parsed = schema.safeParse({
+  const parsed = attendeeSchema.safeParse({
     eventId: formData.get("eventId"),
     name: formData.get("name"),
     email: formData.get("email"),

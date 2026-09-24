@@ -3,9 +3,17 @@ import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { BackButton } from "@/components/ui/back-button";
 import { Card, LinkCard } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { formatZAR } from "@/lib/utils";
-import { markVendorVerified, toggleVendorFeatured } from "./actions";
+import { Button, LinkButton } from "@/components/ui/button";
+import { formatEventDate, formatZAR } from "@/lib/utils";
+import { sastDayKey } from "@/lib/vendor-ranking";
+import {
+  PLACEMENT_STATE_CLASSES,
+  PLACEMENT_STATE_LABELS,
+  describePosition,
+  getPlacementState,
+  type PlacementStatus,
+} from "@/lib/feature-placements";
+import { markVendorVerified } from "./actions";
 
 interface VendorDetail {
   id: string;
@@ -64,7 +72,13 @@ export default async function AdminVendorDetailPage({ params }: PageProps<"/admi
     notFound();
   }
 
-  const [{ data: services }, { data: team }, { data: eventAssociations }, { data: cases }] = await Promise.all([
+  const [{ data: placements }, { data: services }, { data: team }, { data: eventAssociations }, { data: cases }] = await Promise.all([
+    service
+      .from("vendor_feature_placements")
+      .select("id, status, starts_on, ends_on, position")
+      .eq("vendor_id", id)
+      .order("starts_on", { ascending: false })
+      .returns<{ id: string; status: PlacementStatus; starts_on: string; ends_on: string; position: number | null }[]>(),
     service.from("vendor_services").select("id, name, description").eq("vendor_id", id).returns<ServiceRow[]>(),
     service
       .from("vendor_team_members")
@@ -117,13 +131,37 @@ export default async function AdminVendorDetailPage({ params }: PageProps<"/admi
             </Button>
           </form>
         )}
-        <form action={toggleVendorFeatured}>
-          <input type="hidden" name="vendorId" value={vendor.id} />
-          <input type="hidden" name="featured" value={(!vendor.is_featured).toString()} />
-          <Button type="submit" variant={vendor.is_featured ? "primary" : "secondary"}>
-            {vendor.is_featured ? "★ Featured — remove" : "☆ Feature this vendor"}
-          </Button>
-        </form>
+        <LinkButton href={`/admin/featured/new?vendorId=${vendor.id}`} variant="secondary">
+          ☆ Feature this vendor
+        </LinkButton>
+      </div>
+
+      <div>
+        <h2 className="font-display text-lg font-semibold text-ink">
+          Featured placements ({placements?.length ?? 0})
+        </h2>
+        <div className="mt-3 flex flex-col gap-2">
+          {placements && placements.length > 0 ? (
+            placements.map((p) => {
+              const state = getPlacementState(p, sastDayKey());
+              return (
+                <LinkCard key={p.id} href={`/admin/featured/${p.id}`} className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-text">
+                    {formatEventDate(p.starts_on)} – {formatEventDate(p.ends_on)}
+                    <span className="ml-2 text-xs font-semibold text-text-muted">{describePosition(p.position)}</span>
+                  </p>
+                  <span className={`rounded-pill px-2 py-0.5 text-[10px] font-extrabold uppercase ${PLACEMENT_STATE_CLASSES[state]}`}>
+                    {PLACEMENT_STATE_LABELS[state]}
+                  </span>
+                </LinkCard>
+              );
+            })
+          ) : (
+            <Card>
+              <p className="text-sm font-semibold text-text-muted">Not featured — no placements yet.</p>
+            </Card>
+          )}
+        </div>
       </div>
 
       <div>

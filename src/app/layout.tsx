@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Nunito } from "next/font/google";
+import { Fredoka, Nunito, Dancing_Script } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import { getSessionContext } from "@/lib/session";
 import "./globals.css";
@@ -21,6 +21,15 @@ const nunito = Nunito({
   subsets: ["latin"],
 });
 
+// The cursive "Gather" wordmark only — see GatherWordmark
+// (src/components/brand/gather-wordmark.tsx). Loaded separately since it is
+// used nowhere else in the app.
+const dancingScript = Dancing_Script({
+  variable: "--font-script",
+  weight: ["700"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Gather",
   description: "Plan it. Book it. Pull it off.",
@@ -28,9 +37,13 @@ export const metadata: Metadata = {
 
 // viewport-fit=cover is what makes env(safe-area-inset-bottom) resolve to a
 // real value instead of 0 on iOS Safari — required for the fixed bottom tab
-// bar to clear the home-indicator area rather than sit under it.
+// bar to clear the home-indicator area rather than sit under it. themeColor
+// tints the Android browser chrome / task switcher and the PWA splash
+// screen (see manifest.ts) — bold-playful's own --color-primary, resolved
+// to a fixed hex since neither has access to the in-page CSS theme.
 export const viewport: Viewport = {
   viewportFit: "cover",
+  themeColor: "#b64ebd",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -47,7 +60,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fredoka.variable} ${nunito.variable} h-full antialiased`}
+      className={`${fredoka.variable} ${nunito.variable} ${dancingScript.variable} h-full antialiased`}
     >
       <head>
         {/* A plain <script> tag here (tried next/script's beforeInteractive
@@ -62,7 +75,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              'try{var t=localStorage.getItem("gather-theme");if(t==="ocean-current"||t==="sunset-social")document.documentElement.setAttribute("data-theme",t)}catch(e){}',
+              'try{' +
+              'var t=localStorage.getItem("gather-theme");' +
+              'if(t==="ocean-current"||t==="sunset-social")document.documentElement.setAttribute("data-theme",t);' +
+              'var p=localStorage.getItem("gather-bg-pattern");' +
+              'if(p==="none"||p==="category-confetti"||p==="gradient-confetti"||p==="corner-burst")document.documentElement.setAttribute("data-bg-pattern",p);' +
+              '}catch(e){}',
           }}
         />
       </head>

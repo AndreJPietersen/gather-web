@@ -315,7 +315,7 @@ export default async function EventPaymentsPage({
                       <form action={markInstallmentPaid}>
                         <input type="hidden" name="installmentId" value={installment.id} />
                         <input type="hidden" name="eventId" value={event.id} />
-                        <Button type="submit" variant="secondary">
+                        <Button type="submit" variant="accent">
                           Mark Paid
                         </Button>
                       </form>

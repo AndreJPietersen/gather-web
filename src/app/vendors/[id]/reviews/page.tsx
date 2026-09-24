@@ -32,7 +32,7 @@ export default async function VendorReviewsPage({ params }: PageProps<"/vendors/
         <p className="text-sm font-semibold text-text-muted">{vendor.name}</p>
       </PageHeader>
 
-      <RatingSummaryCard summary={summary} />
+      <RatingSummaryCard summary={summary} hideEmptyState />
 
       <StaggerList className="flex flex-col gap-2.5">
         {reviews.length > 0 ? (

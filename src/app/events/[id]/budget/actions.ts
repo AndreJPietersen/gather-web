@@ -5,13 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hasPaidInstallment } from "../vendors/[eventVendorId]/actions";
-
-const createSchema = z.object({
-  eventId: z.string().uuid(),
-  label: z.string().trim().min(2, "Label is too short").max(150),
-  categoryId: z.string().uuid().optional().or(z.literal("")),
-  budgetedAmount: z.coerce.number().positive("Amount must be greater than zero"),
-});
+import { budgetItemSchema } from "./schema";
 
 export interface BudgetItemFormState {
   error?: string;
@@ -23,7 +17,7 @@ export interface BudgetItemFormState {
 // same spirit as payment_plans, so there's no vendor-side branch to worry
 // about here at all.
 export async function createBudgetItem(_prevState: BudgetItemFormState, formData: FormData): Promise<BudgetItemFormState> {
-  const parsed = createSchema.safeParse({
+  const parsed = budgetItemSchema.safeParse({
     eventId: formData.get("eventId"),
     label: formData.get("label"),
     categoryId: formData.get("categoryId"),

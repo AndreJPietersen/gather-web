@@ -35,7 +35,7 @@ export default async function VendorDashboardReviewsPage({ params }: PageProps<"
         <p className="text-sm font-semibold text-text-muted">See what planners are saying about you</p>
       </PageHeader>
 
-      <RatingSummaryCard summary={summary} />
+      <RatingSummaryCard summary={summary} hideEmptyState />
 
       <StaggerList className="flex flex-col gap-2.5">
         {reviews.length > 0 ? (

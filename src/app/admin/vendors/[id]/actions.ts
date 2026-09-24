@@ -35,33 +35,3 @@ export async function markVendorVerified(formData: FormData): Promise<void> {
     revalidatePath(`/admin/vendors/${parsed.data.vendorId}`);
   }
 }
-
-const featuredSchema = z.object({ vendorId: z.string().uuid(), featured: z.enum(["true", "false"]) });
-
-// The paid-placement-style boost behind the vendor marketplace redesign —
-// deliberately admin-only, not something a vendor can set on their own
-// edit form: vendors.is_featured has its own column-level UPDATE grant
-// (supabase/migrations/00000000000015_...) that excludes `authenticated`
-// entirely, so this is the only real write path regardless of what any
-// future UI might try to send.
-export async function toggleVendorFeatured(formData: FormData): Promise<void> {
-  const { userId } = await requireAdmin();
-  const parsed = featuredSchema.safeParse({ vendorId: formData.get("vendorId"), featured: formData.get("featured") });
-  if (!parsed.success) return;
-
-  const service = createServiceClient();
-  const isFeatured = parsed.data.featured === "true";
-  const { error } = await service.from("vendors").update({ is_featured: isFeatured }).eq("id", parsed.data.vendorId);
-
-  if (!error) {
-    await logAdminAction({
-      adminId: userId,
-      action: isFeatured ? "vendor.featured" : "vendor.unfeatured",
-      targetTable: "vendors",
-      targetId: parsed.data.vendorId,
-    });
-    revalidatePath(`/admin/vendors/${parsed.data.vendorId}`);
-    revalidatePath("/vendors");
-    revalidatePath("/");
-  }
-}

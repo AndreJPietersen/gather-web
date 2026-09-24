@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ListTodo, Wallet, CalendarDays } from "lucide-react";
 import { LinkCard } from "@/components/ui/card";
+import { GatherWordmark } from "@/components/brand/gather-wordmark";
+import { GatherTentArt } from "@/components/brand/gather-tent-art";
 import { VendorAvatar } from "@/components/vendor/vendor-avatar";
 import { VendorRatingBadge } from "@/components/vendor/vendor-rating-badge";
 import { GuestLanding } from "@/components/landing/guest-landing";
@@ -72,7 +74,7 @@ export default async function Home() {
     // gets its first exposure.
     supabase
       .from("vendors")
-      .select("id, name, primary_category, verification_status, is_featured, logo_path, description, created_at")
+      .select("id, name, primary_category, verification_status, is_featured, featured_rank, logo_path, description, created_at")
       .eq("verification_status", "verified")
       .returns<TeaserVendor[]>(),
   ]);
@@ -147,19 +149,21 @@ export default async function Home() {
           off the UI-polish canvas, reusing the countdown card's exact
           glass-tiles-on-gradient language (docs/gather_web_architecture.md,
           teachAndre/12) for the greeting instead of a plain text block. */}
-      <div className="flex flex-col gap-4 rounded-[26px] bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-glow))] p-6 shadow-[0_10px_24px_-10px_var(--color-primary)]">
+      <div className="flex flex-col gap-3 rounded-[26px] bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-glow))] p-5 shadow-[0_10px_24px_-10px_var(--color-primary)]">
         <div>
-          <h1 className="font-display text-[28px] font-semibold leading-[1.2] text-white">
-            Welcome back{session.displayName ? `, ${session.displayName}` : ""}
-          </h1>
+          {/* Wordmark vertically centered against the tent artwork. */}
+          <div className="flex items-center justify-between gap-2">
+            <GatherWordmark className="text-[48px]" />
+            <GatherTentArt className="w-[96px] shrink-0" />
+          </div>
           <p className="mt-1 text-sm font-bold text-white/85">Plan your next event or check the directory.</p>
         </div>
         <div className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-[14px] border border-white/30 bg-white/15 px-3 py-3 text-center">
+          <div className="rounded-[14px] border border-white/30 bg-white/15 px-3 py-2 text-center">
             <p className="font-display text-[22px] font-semibold text-white">{eventsCount}</p>
             <p className="mt-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white/85">Events</p>
           </div>
-          <div className="rounded-[14px] border border-white/30 bg-white/15 px-3 py-3 text-center">
+          <div className="rounded-[14px] border border-white/30 bg-white/15 px-3 py-2 text-center">
             <p className="font-display text-[22px] font-semibold text-white">{upcomingTasks?.length ?? 0}</p>
             <p className="mt-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white/85">Tasks due</p>
           </div>
@@ -167,13 +171,13 @@ export default async function Home() {
         <div className="flex gap-2">
           <Link
             href="/events"
-            className="flex-1 rounded-pill bg-white px-6 py-3.5 text-center text-[14.5px] font-extrabold text-primary"
+            className="flex-1 rounded-pill bg-white px-4 py-3 text-center text-[14.5px] font-extrabold text-primary"
           >
             My Events
           </Link>
           <Link
             href="/vendors"
-            className="flex-1 rounded-pill border-2 border-white/40 bg-white/15 px-6 py-3.5 text-center text-[14.5px] font-extrabold text-white"
+            className="flex-1 rounded-pill border-2 border-white/40 bg-white/15 px-4 py-3 text-center text-[14.5px] font-extrabold text-white"
           >
             Vendors
           </Link>

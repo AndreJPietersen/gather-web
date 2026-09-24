@@ -7,16 +7,21 @@ import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventDateTime, getCountdownRemaining } from "@/lib/utils";
 import { isInstallmentOverdue } from "@/lib/upcoming";
+import { getEventPlanningProgress } from "@/lib/event-planning-progress";
+import { getSuggestedVendorsForEvent } from "@/lib/vendor-suggestions";
 import { RsvpForm } from "./rsvp-form";
 import { InviteCollaboratorForm } from "./invite-collaborator-form";
 import { CountdownCard } from "./countdown-card";
 import { getEventAccess } from "./access";
+import { HelpMePlanCard } from "./help-me-plan/help-me-plan-card";
+import { MoodBoardPreviewCard } from "./mood-board/mood-board-preview-card";
 
 interface EventDetail {
   id: string;
   owner_id: string;
   name: string;
   event_type: string | null;
+  event_type_id: string | null;
   start_at: string;
   location: string | null;
   description: string | null;
@@ -44,7 +49,7 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, owner_id, name, event_type, start_at, location, description, capacity, status")
+    .select("id, owner_id, name, event_type, event_type_id, start_at, location, description, capacity, status")
     .eq("id", id)
     .maybeSingle<EventDetail>();
 
@@ -85,12 +90,36 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
   // this app's other cross-table checks already use, rather than filtering
   // every pending installment in the system down to this one event's.
   let hasOverduePayment = false;
+  // vendorIds (as opposed to evIds, the event_vendors row ids) is only used
+  // below by the Help Me Plan block, to exclude already-associated vendors
+  // from its own suggestions — fetched here alongside id rather than as a
+  // second query, since this one already runs for every management view.
+  // Excludes 'rejected' — the same filter the standalone Vendors page
+  // applies to its own list, for the same reason: a soft-removed vendor
+  // shouldn't count as "you have a vendor" for Help Me Plan's progress, stay
+  // permanently excluded from its suggestions, or keep an overdue-payment
+  // badge alive for a booking that's no longer actually part of the event.
+  let evIds: string[] = [];
+  let vendorIds: string[] = [];
+  let pIds: string[] = [];
+  // Ordered oldest-first and carrying vendors(name) so the Help Me Plan
+  // block below can derive its "first vendor added" straight from this
+  // array instead of running a second, near-identical event_vendors query.
+  let orderedEventVendors: { id: string; vendor_id: string; vendors: { name: string } | null }[] = [];
   if (isManagementView) {
-    const { data: eventVendorIds } = await supabase.from("event_vendors").select("id").eq("event_id", event.id);
-    const evIds = (eventVendorIds ?? []).map((ev) => ev.id);
+    const { data: eventVendorRows } = await supabase
+      .from("event_vendors")
+      .select("id, vendor_id, vendors(name)")
+      .eq("event_id", event.id)
+      .neq("status", "rejected")
+      .order("created_at", { ascending: true })
+      .returns<{ id: string; vendor_id: string; vendors: { name: string } | null }[]>();
+    orderedEventVendors = eventVendorRows ?? [];
+    evIds = orderedEventVendors.map((ev) => ev.id);
+    vendorIds = orderedEventVendors.map((ev) => ev.vendor_id);
     if (evIds.length > 0) {
       const { data: planIds } = await supabase.from("payment_plans").select("id").in("event_vendor_id", evIds);
-      const pIds = (planIds ?? []).map((p) => p.id);
+      pIds = (planIds ?? []).map((p) => p.id);
       if (pIds.length > 0) {
         const { data: pendingInstallments } = await supabase
           .from("payment_installments")
@@ -100,6 +129,107 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
           .returns<{ status: string; due_date: string }[]>();
         hasOverduePayment = (pendingInstallments ?? []).some((i) => isInstallmentOverdue(i.status, i.due_date));
       }
+    }
+  }
+
+  // Help Me Plan — editor-only, same gate every add-form on this event's
+  // sub-pages already uses (a Viewer collaborator can't write any of these
+  // rows under RLS, so there's nothing for the wizard to do for them).
+  let planningProgress: ReturnType<typeof getEventPlanningProgress> | null = null;
+  let budgetCategories: { id: string; name: string }[] = [];
+  let suggestedVendorsForWizard: { id: string; name: string; primary_category: string | null }[] = [];
+  let initialBudgetItems: { id: string; label: string }[] = [];
+  let initialEventVendor: { id: string; name: string } | null = null;
+
+  if (access.isEditor) {
+    const [{ count: attendeeCount }, { count: taskCount }, { data: categories }, { data: existingBudgetItems }, suggestions] =
+      await Promise.all([
+        supabase.from("event_attendees").select("id", { count: "exact", head: true }).eq("event_id", event.id),
+        supabase.from("event_tasks").select("id", { count: "exact", head: true }).eq("event_id", event.id),
+        supabase.from("service_categories").select("id, name").eq("is_active", true).order("name"),
+        supabase.from("budget_items").select("id, label").eq("event_id", event.id).returns<{ id: string; label: string }[]>(),
+        // The exact event_type_service_categories -> vendor_services
+        // cross-reference the Vendors sub-page's own "Suggested Vendors"
+        // section runs (vendors/page.tsx), via the same shared helper —
+        // caps differently (4 here, for one wizard step; 8 there, for a
+        // dedicated browsing section), but no longer a second hand-copied
+        // query. Started alongside the other 4 queries above rather than
+        // after them, since it only needs event.event_type_id and
+        // vendorIds, both already known before this Promise.all begins.
+        getSuggestedVendorsForEvent(supabase, {
+          eventTypeId: event.event_type_id,
+          excludeVendorIds: vendorIds,
+          limit: 4,
+        }),
+      ]);
+
+    budgetCategories = categories ?? [];
+    initialBudgetItems = existingBudgetItems ?? [];
+    suggestedVendorsForWizard = suggestions;
+    const firstEventVendor = orderedEventVendors[0] ?? null;
+    initialEventVendor = firstEventVendor ? { id: firstEventVendor.id, name: firstEventVendor.vendors?.name ?? "Vendor" } : null;
+
+    planningProgress = getEventPlanningProgress({
+      attendeeCount: attendeeCount ?? 0,
+      taskCount: taskCount ?? 0,
+      // Derived from existingBudgetItems (fetched above with the identical
+      // event_id filter) instead of its own separate count query — the two
+      // queries had no way to disagree since neither narrows further, so
+      // the count query was pure overhead.
+      budgetItemCount: initialBudgetItems.length,
+      vendorCount: evIds.length,
+      paymentPlanCount: pIds.length,
+    });
+  }
+
+  // Mood board preview strip — visible to the same audience as the board
+  // itself (isManagementView, RLS's own owner-or-collaborator read scope),
+  // not narrowed to isEditor the way Help Me Plan's card is, since viewing
+  // the board doesn't require write access.
+  let moodBoardTagline: string | null = null;
+  let moodBoardPalette: string[] = [];
+  let moodBoardFeaturedPhotos: { id: string; url: string }[] = [];
+  // Whether the board has *any* photo, not just a featured one — the
+  // preview card's own empty state needs this to avoid claiming a board
+  // with real (just unstarred) photos on it is empty.
+  let moodBoardHasAnyPhoto = false;
+  if (isManagementView) {
+    const [{ data: moodBoard }, { data: featuredPhotoRows }, { count: photoCount }] = await Promise.all([
+      supabase
+        .from("event_mood_boards")
+        .select("tagline, palette")
+        .eq("event_id", event.id)
+        .maybeSingle<{ tagline: string | null; palette: string[] }>(),
+      supabase
+        .from("event_mood_board_photos")
+        .select("id, storage_path")
+        .eq("event_id", event.id)
+        .eq("is_featured", true)
+        .order("featured_at", { ascending: false })
+        .limit(2)
+        .returns<{ id: string; storage_path: string }[]>(),
+      supabase.from("event_mood_board_photos").select("id", { count: "exact", head: true }).eq("event_id", event.id),
+    ]);
+    moodBoardTagline = moodBoard?.tagline ?? null;
+    moodBoardPalette = moodBoard?.palette ?? [];
+    moodBoardHasAnyPhoto = (photoCount ?? 0) > 0;
+
+    // One batched request for both featured photos instead of one Storage
+    // round trip each.
+    if ((featuredPhotoRows ?? []).length > 0) {
+      const { data: signedUrls } = await supabase.storage
+        .from("event-mood-board")
+        .createSignedUrls(
+          (featuredPhotoRows ?? []).map((p) => p.storage_path),
+          3600,
+        );
+      const signedUrlByPath = new Map((signedUrls ?? []).filter((e) => e.path && e.signedUrl).map((e) => [e.path as string, e.signedUrl as string]));
+      moodBoardFeaturedPhotos = (featuredPhotoRows ?? [])
+        .map((photo) => {
+          const url = signedUrlByPath.get(photo.storage_path);
+          return url ? { id: photo.id, url } : null;
+        })
+        .filter((p): p is { id: string; url: string } => p !== null);
     }
   }
 
@@ -142,6 +272,17 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
             <Link href={`/events/${event.id}/edit`} className="text-sm font-extrabold text-primary">
               Edit event
             </Link>
+          )}
+
+          {access.isEditor && planningProgress && (
+            <HelpMePlanCard
+              eventId={event.id}
+              progress={planningProgress}
+              budgetCategories={budgetCategories}
+              suggestedVendors={suggestedVendorsForWizard}
+              initialBudgetItems={initialBudgetItems}
+              initialEventVendor={initialEventVendor}
+            />
           )}
 
           {/* "Colorful tint grid" — one of 4 directions sketched on the Event
@@ -208,6 +349,16 @@ export default async function EventDetailPage({ params }: PageProps<"/events/[id
               <span className="text-[13px] font-extrabold text-ink">Gallery</span>
             </Link>
           </div>
+
+          {isManagementView && (
+            <MoodBoardPreviewCard
+              eventId={event.id}
+              tagline={moodBoardTagline}
+              palette={moodBoardPalette}
+              featuredPhotos={moodBoardFeaturedPhotos}
+              hasAnyPhoto={moodBoardHasAnyPhoto}
+            />
+          )}
 
           {access.isEditor && (
             <div>

@@ -204,6 +204,34 @@
       "when": 1790018822403,
       "tag": "0028_real_domino",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790152185287,
+      "tag": "0029_empty_lady_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790190248492,
+      "tag": "0030_vendor_feature_placements",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790190273939,
+      "tag": "0031_vendor_featured_functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1790190333657,
+      "tag": "0032_drop_vendor_is_featured",
+      "breakpoints": true
     }
   ]
 }

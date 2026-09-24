@@ -8,6 +8,7 @@ import { getEventAccess } from "../access";
 import { associateWithEvent } from "@/app/vendors/[id]/actions";
 import { ChatUnreadBadge } from "./[eventVendorId]/chat/unread-badge";
 import { getUnreadCounts } from "./[eventVendorId]/chat/actions";
+import { getSuggestedVendorsForEvent } from "@/lib/vendor-suggestions";
 
 interface EventVendorRow {
   id: string;
@@ -16,12 +17,6 @@ interface EventVendorRow {
   amount: string | null;
   vendor_id: string;
   vendors: { name: string } | null;
-}
-
-interface SuggestedVendor {
-  id: string;
-  name: string;
-  primary_category: string | null;
 }
 
 // A plain <form action> must return void|Promise<void>, but
@@ -81,32 +76,14 @@ export default async function EventVendorsPage({ params }: PageProps<"/events/[i
   // Catering, Photography, so a vendor with any service in one of those
   // categories gets suggested. Every table here has public SELECT RLS, so
   // this runs on the plain request-scoped client, no service role needed.
-  const suggestedVendors: SuggestedVendor[] = [];
-  if (access.isEditor && event.event_type_id) {
-    const { data: mappings } = await supabase
-      .from("event_type_service_categories")
-      .select("service_category_id, service_categories!inner(is_active)")
-      .eq("event_type_id", event.event_type_id)
-      .eq("service_categories.is_active", true);
-    const categoryIds = (mappings ?? []).map((m) => m.service_category_id);
-
-    if (categoryIds.length > 0) {
-      const excluded = new Set((eventVendors ?? []).map((ev) => ev.vendor_id));
-      const { data: matches } = await supabase
-        .from("vendor_services")
-        .select("vendor_id, vendors(id, name, primary_category)")
-        .in("category_id", categoryIds)
-        .limit(24)
-        .returns<{ vendor_id: string; vendors: SuggestedVendor | null }[]>();
-
-      for (const match of matches ?? []) {
-        if (!match.vendors || excluded.has(match.vendor_id)) continue;
-        excluded.add(match.vendor_id);
-        suggestedVendors.push(match.vendors);
-        if (suggestedVendors.length >= 8) break;
-      }
-    }
-  }
+  const suggestedVendors =
+    access.isEditor && event.event_type_id
+      ? await getSuggestedVendorsForEvent(supabase, {
+          eventTypeId: event.event_type_id,
+          excludeVendorIds: (eventVendors ?? []).map((ev) => ev.vendor_id),
+          limit: 8,
+        })
+      : [];
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-10">

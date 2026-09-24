@@ -6,8 +6,31 @@ import type { RatingSummary } from "@/lib/vendor-reviews";
 // Shared by the public vendor profile, the full reviews list, and the
 // vendor's own dashboard — same average/count/breakdown treatment
 // everywhere, with a `children` slot for whichever CTA (or none) belongs on
-// that particular surface.
-export function RatingSummaryCard({ summary, title, children }: { summary: RatingSummary; title?: string; children?: ReactNode }) {
+// that particular surface. hideEmptyState is for callers that already
+// render their own (often richer — e.g. a "tap to write the first one"
+// link) zero-reviews message right below this card: the public profile
+// page has no such message of its own, so it needs this card's built-in
+// one; the two full reviews-list pages do, and previously showed both at
+// once.
+export function RatingSummaryCard({
+  summary,
+  title,
+  hideEmptyState,
+  children,
+}: {
+  summary: RatingSummary;
+  title?: string;
+  hideEmptyState?: boolean;
+  children?: ReactNode;
+}) {
+  // Skip the card entirely rather than rendering an empty shell — its only
+  // job in the zero-reviews case is the message hideEmptyState is saying
+  // the caller already has elsewhere, and no title/breakdown/children makes
+  // sense to show without any actual rating data behind them.
+  if (hideEmptyState && summary.count === 0) {
+    return null;
+  }
+
   return (
     <Card className="flex flex-col gap-4">
       {title && (

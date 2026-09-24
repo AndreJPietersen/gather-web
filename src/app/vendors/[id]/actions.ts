@@ -1,13 +1,8 @@
 "use server";
 
-import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-
-const schema = z.object({
-  vendorId: z.string().uuid(),
-  eventId: z.string().uuid(),
-});
+import { associateWithEventSchema } from "./schema";
 
 export interface AssociateState {
   error?: string;
@@ -18,7 +13,7 @@ export interface AssociateState {
 // (interested, unconfirmed, no amount/notes) — full quote/payment handling
 // is Phase 7's job on the resulting event_vendors row, not rebuilt here.
 export async function associateWithEvent(_prevState: AssociateState, formData: FormData): Promise<AssociateState> {
-  const parsed = schema.safeParse({
+  const parsed = associateWithEventSchema.safeParse({
     vendorId: formData.get("vendorId"),
     eventId: formData.get("eventId"),
   });

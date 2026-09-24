@@ -3,9 +3,8 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_CHAT_IMAGES } from "@/lib/chat-limits";
+import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/image-upload-limits";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const SIGNED_URL_TTL_SECONDS = 60 * 60; // matches the event-gallery page's own TTL
 
 export interface ChatMessage {

@@ -104,6 +104,7 @@ textarea {
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);
+  --font-script: var(--font-script);
 
   /* The two shapes reused everywhere in the prototype: pill controls
    * (buttons, inputs' fully-rounded siblings like avatars/badges) and
@@ -176,4 +177,42 @@ textarea {
   body {
     overflow-x: hidden;
   }
+}
+
+/*
+ * Background pattern — see BackgroundPattern (background-pattern.tsx) and
+ * pattern-store.ts. Same discipline as the [data-theme] rules above: the
+ * component always renders the same SVG with all three <pattern> defs
+ * present, and only these attribute-scoped rules decide which one (if any)
+ * actually paints, driven by [data-bg-pattern] on <html> — never a JSX
+ * branch, so switching it can't cause a hydration mismatch.
+ */
+/* Category Confetti is the default (Andre's call) — shown whenever
+   [data-bg-pattern] is absent, which covers a first paint before the
+   client store/script has run as well as anyone who's never chosen a
+   preference. "None" is a real, explicit opt-out below, not just an
+   absence of the attribute the way it was before this default flipped. */
+.bg-pattern-fill {
+  fill: url(#pattern-category-confetti);
+}
+.bg-pattern-svg {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+[data-bg-pattern="none"] .bg-pattern-fill {
+  fill: none;
+}
+[data-bg-pattern="gradient-confetti"] .bg-pattern-fill {
+  fill: url(#pattern-gradient-confetti);
+}
+[data-bg-pattern="corner-burst"] .bg-pattern-fill {
+  fill: url(#pattern-corner-burst);
+}
+
+/* Corner Burst only: fade the pattern out toward the center of the
+   viewport, so it only really shows near the top/bottom edges. */
+[data-bg-pattern="corner-burst"] .bg-pattern-svg {
+  mask-image: radial-gradient(ellipse 70% 55% at center, transparent 25%, black 90%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 55% at center, transparent 25%, black 90%);
 }

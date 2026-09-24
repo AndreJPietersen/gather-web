@@ -4,9 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { supportCaseCategoryLabel } from "@/lib/support-case-categories";
-
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/image-upload-limits";
 
 const schema = z.object({
   category: z.enum(["payments_billing", "vendor_booking", "event_setup", "account_verification", "app_bug", "other"], {

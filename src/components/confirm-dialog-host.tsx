@@ -22,7 +22,7 @@ export function ConfirmDialogHost() {
         <Button variant="secondary" onClick={() => settle(false)}>
           {cancelLabel}
         </Button>
-        <Button variant="primary" onClick={() => settle(true)}>
+        <Button variant="accent" onClick={() => settle(true)}>
           {confirmLabel}
         </Button>
       </div>

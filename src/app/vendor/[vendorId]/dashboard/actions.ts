@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_GALLERY_IMAGES } from "@/lib/gallery-limits";
+import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/image-upload-limits";
 
 const quoteSchema = z.object({
   eventVendorId: z.string().uuid(),
@@ -162,9 +163,6 @@ export async function removeSocialLink(formData: FormData): Promise<void> {
   revalidatePath(`/vendor/${vendorId}/edit`);
   revalidatePath(`/vendors/${vendorId}`);
 }
-
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export interface GalleryUploadState {
   error?: string;

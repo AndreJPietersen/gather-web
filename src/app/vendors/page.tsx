@@ -18,6 +18,7 @@ interface VendorRow {
   description: string | null;
   verification_status: "unclaimed" | "claim_pending" | "verified";
   is_featured: boolean;
+  featured_rank: number | null;
   logo_path: string | null;
   created_at: string;
 }
@@ -61,7 +62,7 @@ export default async function VendorsPage({ searchParams }: PageProps<"/vendors"
 
   let vendorsQuery = supabase
     .from("vendors")
-    .select("id, name, primary_category, description, verification_status, is_featured, logo_path, created_at");
+    .select("id, name, primary_category, description, verification_status, is_featured, featured_rank, logo_path, created_at");
   if (activeCategory) {
     vendorsQuery = vendorsQuery.eq("primary_category", activeCategory);
   }

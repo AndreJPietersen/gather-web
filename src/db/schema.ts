@@ -49,6 +49,7 @@ export const eventVendorStatusEnum = pgEnum("event_vendor_status", [
   "contracted",
   "rejected",
 ]);
+export const featurePlacementStatusEnum = pgEnum("feature_placement_status", ["pending", "activated", "cancelled"]);
 export const claimRequestStatusEnum = pgEnum("claim_request_status", ["pending", "approved", "rejected"]);
 export const vendorRoleEnum = pgEnum("vendor_role", ["owner", "manager", "staff"]);
 export const vendorQuoteStatusEnum = pgEnum("vendor_quote_status", [
@@ -484,6 +485,94 @@ export const eventGalleryImages = pgTable(
   ],
 ).enableRLS();
 
+// A per-event mood board — the expressive, single-page companion to the
+// plain event_gallery_images grid above, deliberately kept as its own
+// separate feature rather than retrofitting Gallery into this (Andre's own
+// call — see docs/gather_web_architecture.md's mood-board entry for the
+// full discussion). One row per event, created lazily on first save rather
+// than backfilled for every existing event — an event with no board row
+// yet is a legitimate, common "nothing set up" state, not an error.
+export const eventMoodBoards = pgTable(
+  "event_mood_boards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id")
+      .notNull()
+      .unique()
+      .references(() => events.id, { onDelete: "cascade" }),
+    tagline: text("tagline"),
+    // Hex strings ("#b25a28"), planner-entered via a plain color input —
+    // never derived from the photos below and never tied to the app's own
+    // Bold Playful/Ocean Current/Sunset Social themes, a deliberate call
+    // from the architecture discussion ("pure expression, no app tie-in").
+    palette: jsonb("palette").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    pgPolicy("event_mood_boards_select_owner_or_collaborator", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`public.is_event_owner(${table.eventId}, ${authUid}) OR public.is_event_collaborator(${table.eventId}, ${authUid})`,
+    }),
+    pgPolicy("event_mood_boards_insert_owner_or_editor", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`public.is_event_owner(${table.eventId}, ${authUid}) OR public.is_event_collaborator(${table.eventId}, ${authUid}, 'editor')`,
+    }),
+    pgPolicy("event_mood_boards_update_owner_or_editor", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`public.is_event_owner(${table.eventId}, ${authUid}) OR public.is_event_collaborator(${table.eventId}, ${authUid}, 'editor')`,
+      withCheck: sql`public.is_event_owner(${table.eventId}, ${authUid}) OR public.is_event_collaborator(${table.eventId}, ${authUid}, 'editor')`,
+    }),
+  ],
+).enableRLS();
+
+// The featured-pair-plus-grid photos themselves — same shape as
+// event_gallery_images (private bucket, signed URLs, owner-or-editor
+// write) with one addition: isFeatured/featuredAt, which the "fan" reads
+// as its top-2-by-featuredAt. Capped at 2 true rows per event by the
+// toggle action itself (un-featuring the oldest when a 3rd is starred),
+// not a DB constraint — the same kind of soft, app-level cap
+// MAX_GALLERY_IMAGES already uses rather than a CHECK.
+export const eventMoodBoardPhotos = pgTable(
+  "event_mood_board_photos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+    storagePath: text("storage_path").notNull(),
+    isFeatured: boolean("is_featured").notNull().default(false),
+    featuredAt: timestamp("featured_at", { withTimezone: true }),
+    createdBy: uuid("created_by").notNull().references(() => profiles.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("event_mood_board_photos_event_id_idx").on(table.eventId),
+    pgPolicy("event_mood_board_photos_select_owner_or_collaborator", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`public.is_event_owner(${table.eventId}, ${authUid}) OR public.is_event_collaborator(${table.eventId}, ${authUid})`,
+    }),
+    pgPolicy("event_mood_board_photos_insert_owner_or_editor", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`public.is_event_owner(${table.eventId}, ${authUid}) OR public.is_event_collaborator(${table.eventId}, ${authUid}, 'editor')`,
+    }),
+    pgPolicy("event_mood_board_photos_update_owner_or_editor", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`public.is_event_owner(${table.eventId}, ${authUid}) OR public.is_event_collaborator(${table.eventId}, ${authUid}, 'editor')`,
+      withCheck: sql`public.is_event_owner(${table.eventId}, ${authUid}) OR public.is_event_collaborator(${table.eventId}, ${authUid}, 'editor')`,
+    }),
+    pgPolicy("event_mood_board_photos_delete_owner_or_editor", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`public.is_event_owner(${table.eventId}, ${authUid}) OR public.is_event_collaborator(${table.eventId}, ${authUid}, 'editor')`,
+    }),
+  ],
+).enableRLS();
+
 // ---------------------------------------------------------------------------
 // Vendors
 // ---------------------------------------------------------------------------
@@ -506,18 +595,11 @@ export const vendors = pgTable(
     // unlike the gallery bucket) — a brand-new, not-yet-verified vendor
     // should still be able to work on their profile completion score.
     logoPath: text("logo_path"),
-    // Admin-curated paid-placement flag — boosts a vendor to the top of
-    // Home's teaser and the /vendors marketplace's Featured row. Genuinely
-    // column-protected, not just hidden from the vendor-facing edit form: a
-    // plain RLS row-policy can't restrict which *columns* an authorized
-    // update may touch, so supabase/migrations/00000000000015_... revokes
-    // the broad table-level UPDATE grant this table inherited and grants it
-    // back only on the columns a vendor should actually be able to write —
-    // is_featured (and verification_status, closing a latent gap found
-    // while doing this) both deliberately excluded. See that migration's
-    // own comment, and teachAndre/09 (the same lesson already learned once
-    // for profiles.is_admin, applied here for the same reason.
-    isFeatured: boolean("is_featured").notNull().default(false),
+    // Featured status is no longer a column here — it lives in
+    // vendor_feature_placements (dates, status, rank) and reaches queries as
+    // the computed columns is_featured / featured_rank on vendors, defined in
+    // the vendor_featured_functions migration. Vendors still cannot influence
+    // it: nothing they can write touches vendor_feature_placements at all.
     createdBy: uuid("created_by").notNull().references(() => profiles.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -1731,5 +1813,48 @@ export const adminAuditLog = pgTable(
     index("admin_audit_log_admin_id_idx").on(table.adminId),
     index("admin_audit_log_target_idx").on(table.targetTable, table.targetId),
     index("admin_audit_log_created_at_idx").on(table.createdAt),
+  ],
+).enableRLS();
+
+// Paid featured placement for a vendor — replaces the old vendors.is_featured
+// boolean, which had no dates, no lifecycle, and no ordering. One row per
+// purchase: status is the admin-managed part (pending until the vendor has
+// paid, activated once confirmed, cancelled if withdrawn); "live",
+// "scheduled" and "ended" are DERIVED from status + the date window at read
+// time, not stored, since this stack has no scheduler to flip a stored
+// "expired" flag and a flag nothing maintains would silently go stale (see
+// public.is_featured() in the vendor_feature_placements migration).
+// Dates are plain dates in South African time, inclusive on both ends.
+// position: 1, 2, 3… pins the vendor at that rank among featured vendors;
+// null puts it in the rotating pool, ordered fairly per day (see
+// src/lib/vendor-ranking.ts). Admin-only: RLS on with no policies, written
+// through the service role behind requireAdmin() like the rest of the admin
+// console; public pages learn "featured / rank" only through the
+// SECURITY DEFINER computed columns on vendors, never by reading this table
+// (so fee_amount and note stay private).
+export const vendorFeaturePlacements = pgTable(
+  "vendor_feature_placements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vendorId: uuid("vendor_id")
+      .notNull()
+      .references(() => vendors.id, { onDelete: "cascade" }),
+    status: featurePlacementStatusEnum("status").notNull().default("pending"),
+    startsOn: date("starts_on").notNull(),
+    endsOn: date("ends_on").notNull(),
+    position: integer("position"),
+    feeAmount: numeric("fee_amount", { precision: 12, scale: 2 }),
+    note: text("note"),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => profiles.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("vendor_feature_placements_vendor_id_idx").on(table.vendorId),
+    index("vendor_feature_placements_window_idx").on(table.status, table.startsOn, table.endsOn),
+    check("vendor_feature_placements_dates_check", sql`${table.endsOn} >= ${table.startsOn}`),
+    check("vendor_feature_placements_position_check", sql`${table.position} IS NULL OR ${table.position} >= 1`),
   ],
 ).enableRLS();

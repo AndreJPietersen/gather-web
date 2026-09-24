@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Store, CalendarDays, LifeBuoy, ListTree, Tags } from "lucide-react";
+import { LayoutDashboard, Users, Store, CalendarDays, LifeBuoy, ListTree, Tags, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Planners", href: "/admin/planners", icon: Users },
   { label: "Vendors", href: "/admin/vendors", icon: Store },
+  { label: "Featured", href: "/admin/featured", icon: Star },
   { label: "Events", href: "/admin/events", icon: CalendarDays },
   { label: "Event Types", href: "/admin/event-types", icon: ListTree },
   { label: "Service Categories", href: "/admin/service-categories", icon: Tags },

@@ -5,7 +5,13 @@ import Link, { type LinkProps } from "next/link";
 import { motion, type HTMLMotionProps } from "motion/react";
 import { cn } from "@/lib/utils";
 
-export type ButtonVariant = "primary" | "secondary";
+// "primary" (gradient + shimmer) is reserved for genuinely grandiose
+// moments — log in, register, the guest landing hero's CTAs — not every
+// action that happens to be the important one on its screen. "accent" is
+// the same gradient/shadow treatment for everything else that still
+// deserves the theme's color (a wizard's Next, Mark Paid, a confirm
+// dialog's confirm button) without implying the same kind of occasion.
+export type ButtonVariant = "primary" | "accent" | "secondary";
 
 const MotionLink = motion.create(Link);
 
@@ -22,6 +28,8 @@ const pressMotionProps = {
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
     "relative overflow-hidden bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-glow))] text-white shadow-[0_8px_18px_-6px_var(--color-primary)] hover:shadow-[0_10px_24px_-6px_var(--color-primary)]",
+  accent:
+    "bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-glow))] text-white shadow-[0_8px_18px_-6px_var(--color-primary)] hover:shadow-[0_10px_24px_-6px_var(--color-primary)]",
   secondary: "bg-surface text-text border-2 border-border hover:bg-primary-soft",
 };
 

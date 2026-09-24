@@ -5,6 +5,8 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/button";
 import { LinkCard } from "@/components/ui/card";
+import { GatherWordmark } from "@/components/brand/gather-wordmark";
+import { GatherTentArt } from "@/components/brand/gather-tent-art";
 import { VendorAvatar } from "@/components/vendor/vendor-avatar";
 import { VendorRatingBadge } from "@/components/vendor/vendor-rating-badge";
 import { formatEventDateTime } from "@/lib/utils";
@@ -44,24 +46,6 @@ const FEATURES = [
   },
 ];
 
-// The prototype's decorative "faint white circle" hero texture, ported as
-// inline SVG rather than an image or gradient-mesh library — cheap, crisp
-// at any DPI, and trivially themeable since it inherits currentColor.
-function HeroTexture() {
-  return (
-    <svg
-      aria-hidden
-      className="pointer-events-none absolute inset-0 h-full w-full text-white/25"
-      viewBox="0 0 400 300"
-      preserveAspectRatio="xMidYMid slice"
-    >
-      <circle cx="340" cy="30" r="140" fill="currentColor" opacity="0.5" />
-      <circle cx="40" cy="260" r="100" fill="currentColor" opacity="0.35" />
-      <circle cx="200" cy="150" r="60" fill="currentColor" opacity="0.15" />
-    </svg>
-  );
-}
-
 export function GuestLanding({
   events,
   vendors,
@@ -79,15 +63,16 @@ export function GuestLanding({
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative overflow-hidden rounded-b-[36px] bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-glow))] px-6 pb-10 pt-14 text-white"
+        className="relative overflow-hidden rounded-b-[36px] bg-[linear-gradient(135deg,var(--color-primary),var(--color-primary-glow))] px-6 pb-10 pt-12 text-white"
       >
-        <HeroTexture />
-        <div className="relative flex flex-col gap-4">
-          <h1 className="font-display text-4xl font-bold leading-tight">Plan it. Book it. Pull it off.</h1>
+        <div className="relative flex flex-col items-center gap-4 text-center">
+          <GatherTentArt className="w-[156px]" />
+          <GatherWordmark className="-mt-1 text-[46px]" />
+          <h1 className="font-display text-[28px] font-bold leading-tight">Plan it. Book it. Pull it off.</h1>
           <p className="text-sm font-semibold text-white/90">
             Gather brings your guest list, your to-dos, and your vendors into one free planning hub.
           </p>
-          <div className="mt-2 flex flex-col gap-2">
+          <div className="mt-2 flex w-full flex-col gap-2">
             <LinkButton href="/register?persona=planner" variant="secondary" className="bg-white text-primary shadow-lg">
               Plan an Event
             </LinkButton>

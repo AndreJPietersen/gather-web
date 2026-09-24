@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ThemeSwitcher } from "@/components/theme/theme-switcher";
+import { PatternSwitcher } from "@/components/theme/pattern-switcher";
 import { PersonaSwitcher } from "@/components/nav/persona-switcher";
 import { getSessionContext } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -187,6 +188,13 @@ export default async function ProfilePage() {
         <h2 className="font-display text-lg font-semibold text-ink">Theme</h2>
         <Card className="mt-3">
           <ThemeSwitcher />
+        </Card>
+      </div>
+
+      <div>
+        <h2 className="font-display text-lg font-semibold text-ink">Background</h2>
+        <Card className="mt-3">
+          <PatternSwitcher />
         </Card>
       </div>
 
