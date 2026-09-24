@@ -2,6 +2,8 @@
 
 **Status:** Living, working document — update directly as phases progress, same convention as the Salesforce-era `gather_frontend_epic_plan.md` this sequencing mirrors. Companion to `gather_web_architecture.md` (stack/data-model/RLS reference; the dated engineering log for completed phases lives there, not here) and `gather_web_user_journeys.md` (the narrative each phase is making real).
 
+> **Next: launch & native apps.** Phases 0–10 below are complete. The work to get to production and onto the App Store and Google Play is planned in **`gather_launch_roadmap.md`** (epics L0–L12, started 2026-09-24).
+
 ## Context
 
 `gather_web_architecture.md` already ports the Salesforce ERD, RLS/authorization model, and a 10-phase sequence that mirrors the Salesforce-era 10-epic frontend plan almost 1:1. What that doc's Build Phases table didn't have — and what made the Salesforce-side `gather_frontend_epic_plan.md` genuinely useful during that build — was per-phase detail beyond one sentence, a concrete kickoff sequence for whatever's next, and a running Outstanding Items checklist tagged by the phase that surfaced each item. This doc adds all three, and is expected to be edited every session the way the Salesforce doc was.

@@ -42,6 +42,7 @@ export default async function EditVendorPage({ params }: PageProps<"/vendor/[ven
     data: { user },
   } = await supabase.auth.getUser();
   const access = await getVendorAccess(vendorId, user?.id ?? null);
+  const { data: categoryRows } = await supabase.from("service_categories").select("name").eq("is_active", true).order("name");
 
   const isUnclaimedCreator = vendor.verification_status === "unclaimed" && vendor.created_by === user?.id;
   const canEdit = isUnclaimedCreator || access.role === "owner" || access.role === "manager";
@@ -86,6 +87,7 @@ export default async function EditVendorPage({ params }: PageProps<"/vendor/[ven
           description={vendor.description ?? ""}
           phone={vendor.phone ?? ""}
           website={vendor.website ?? ""}
+          categories={(categoryRows ?? []).map((c) => c.name)}
         />
       </div>
     </main>

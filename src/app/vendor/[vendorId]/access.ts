@@ -6,8 +6,10 @@ export interface VendorAccess {
 }
 
 // Owner > Manager > Staff (see docs/gather_web_architecture.md's Business
-// Rules & Invariants): Owner manages the team, Owner/Manager quote and
-// manage listings, Staff is view-only on bookings/quotes.
+// Rules & Invariants): Owner manages the team; Owner/Manager send quotes,
+// manage the listing and see money; Staff can chat, add gallery photos,
+// keep team notes on bookings and *suggest* quotes for a Manager to send —
+// but can't see payment amounts or other quotes' prices.
 export async function getVendorAccess(vendorId: string, userId: string | null): Promise<VendorAccess> {
   if (!userId) {
     return { isTeamMember: false, role: null };

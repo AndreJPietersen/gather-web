@@ -79,7 +79,7 @@ export function PlacementForm({
 
         <div className="flex flex-col gap-1">
           <Field label="Position (optional)">
-            <Input name="position" type="number" min={1} max={50} placeholder="Blank = rotating" defaultValue={values.position ?? ""} className="w-40" />
+            <Input name="position" type="number" min={1} max={50} placeholder="Blank = rotating" defaultValue={values.position ?? ""} className="w-52" />
           </Field>
           <p className="text-xs font-semibold text-text-muted">
             1 puts this vendor first among featured vendors, 2 second, and so on. Leave it blank to put the vendor in

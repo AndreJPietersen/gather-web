@@ -1,6 +1,8 @@
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Card, LinkCard } from "@/components/ui/card";
+import { getWatchlist, getWatchlistThresholds } from "@/lib/admin/watchlist";
+import { getRegistrationEnabled } from "@/lib/app-settings";
 
 interface AuditLogRow {
   id: string;
@@ -15,12 +17,13 @@ export default async function AdminDashboardPage() {
   await requireAdmin();
   const service = createServiceClient();
 
-  const [{ count: plannerCount }, { count: vendorCount }, { count: eventCount }, { count: openCaseCount }, { data: recentActivity }] =
+  const [{ count: plannerCount }, { count: vendorCount }, { count: eventCount }, { count: openCaseCount }, { count: businessRequestCount }, { data: recentActivity }] =
     await Promise.all([
       service.from("profiles").select("id", { count: "exact", head: true }),
       service.from("vendors").select("id", { count: "exact", head: true }),
       service.from("events").select("id", { count: "exact", head: true }),
       service.from("support_cases").select("id", { count: "exact", head: true }).in("status", ["open", "pending"]),
+      service.from("vendor_business_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       service
         .from("admin_audit_log")
         .select("id, action, target_table, target_id, created_at, admin:profiles!admin_audit_log_admin_id_profiles_id_fk(display_name)")
@@ -33,18 +36,45 @@ export default async function AdminDashboardPage() {
   // arrays matched by positional index — found in code review as a
   // reordering hazard (an edit to either array silently misattributes a
   // count to the wrong label with no error).
+  const [{ active: watchlist }, registrationEnabled] = await Promise.all([
+    getWatchlistThresholds().then(getWatchlist),
+    getRegistrationEnabled(),
+  ]);
+
   const stats = [
     { label: "Planners", href: "/admin/planners", count: plannerCount ?? 0 },
     { label: "Vendors", href: "/admin/vendors", count: vendorCount ?? 0 },
     { label: "Events", href: "/admin/events", count: eventCount ?? 0 },
     { label: "Open Cases", href: "/admin/cases", count: openCaseCount ?? 0 },
+    { label: "Business Requests", href: "/admin/vendors/requests", count: businessRequestCount ?? 0 },
   ];
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-2xl font-semibold text-ink">Dashboard</h1>
 
-      <div className="grid grid-cols-4 gap-4">
+      {!registrationEnabled && (
+        <LinkCard href="/admin/settings" className="flex items-center justify-between gap-4 border-2 border-primary">
+          <span className="text-sm font-extrabold text-ink">Sign-ups are paused — nobody can create an account.</span>
+          <span className="shrink-0 text-xs font-extrabold text-primary">Settings</span>
+        </LinkCard>
+      )}
+
+      {watchlist.length > 0 && (
+        <LinkCard href="/admin/watchlist" className="flex items-center justify-between gap-4 border-2 border-secondary">
+          <span>
+            <span className="block text-sm font-extrabold text-ink">
+              {watchlist.length} {watchlist.length === 1 ? "pattern" : "patterns"} on the watchlist
+            </span>
+            <span className="block text-xs font-semibold text-text-muted">
+              Possible marketplace flooding — lots of listings, team seats, claims or look-alike businesses.
+            </span>
+          </span>
+          <span className="shrink-0 text-xs font-extrabold text-primary">Review</span>
+        </LinkCard>
+      )}
+
+      <div className="grid grid-cols-5 gap-4">
         {stats.map((stat) => (
           <LinkCard key={stat.href} href={stat.href}>
             <p className="text-xs font-extrabold uppercase text-text-muted">{stat.label}</p>

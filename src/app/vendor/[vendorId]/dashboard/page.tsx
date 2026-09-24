@@ -3,6 +3,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isInstallmentOverdue } from "@/lib/upcoming";
 import { getVendorAccess } from "../access";
+import { FeaturedStatusCard } from "./featured-status-card";
+import { getVendorFeatureStatus } from "@/lib/vendor-feature-status";
+import { sastDayKey } from "@/lib/vendor-ranking";
+import { getFeaturedEnabled } from "@/lib/app-settings";
 import { getVendorRatingSummary, getVendorReviews } from "@/lib/vendor-reviews";
 import { ProfileCompletionNudge } from "./profile-completion-nudge";
 
@@ -13,11 +17,12 @@ interface VendorRow {
   is_featured: boolean;
   logo_path: string | null;
   description: string | null;
+  hidden_at: string | null;
 }
 
 interface BookingQuoteRow {
   id: string;
-  vendor_quotes: { id: string }[];
+  vendor_quotes: { id: string; status: string }[];
 }
 
 // Replaces what used to be one long stacked page (profile checklist +
@@ -34,7 +39,7 @@ export default async function VendorDashboardPage({ params }: PageProps<"/vendor
 
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("id, name, verification_status, is_featured, logo_path, description")
+    .select("id, name, verification_status, is_featured, logo_path, description, hidden_at")
     .eq("id", vendorId)
     .maybeSingle<VendorRow>();
   if (!vendor) {
@@ -49,10 +54,11 @@ export default async function VendorDashboardPage({ params }: PageProps<"/vendor
     notFound();
   }
   const canQuote = access.role === "owner" || access.role === "manager";
+  const featureStatus = access.isTeamMember && (await getFeaturedEnabled()) ? await getVendorFeatureStatus(vendorId) : null;
 
   const [{ data: bookings }, { data: galleryImages }, { data: services }, { data: socialLinks }, ratingSummary, reviews] =
     await Promise.all([
-      supabase.from("event_vendors").select("id, vendor_quotes(id)").eq("vendor_id", vendorId).returns<BookingQuoteRow[]>(),
+      supabase.from("event_vendors").select("id, vendor_quotes(id, status)").eq("vendor_id", vendorId).returns<BookingQuoteRow[]>(),
       supabase.from("vendor_gallery_images").select("id").eq("vendor_id", vendorId),
       supabase.from("vendor_services").select("id").eq("vendor_id", vendorId),
       supabase.from("vendor_social_links").select("id").eq("vendor_id", vendorId),
@@ -63,7 +69,9 @@ export default async function VendorDashboardPage({ params }: PageProps<"/vendor
   // A booking with no quote submitted yet needs the vendor's attention —
   // the same "something actually urgent" bar the event page's own Payments
   // dot sets, not every merely-unconfirmed booking.
-  const needsQuote = (bookings ?? []).some((b) => b.vendor_quotes.length === 0);
+  // Only Owner/Manager send quotes, and a Staff suggestion (a draft) isn't
+  // a quote the planner has — so neither counts toward the dot.
+  const needsQuote = canQuote && (bookings ?? []).some((b) => b.vendor_quotes.every((q) => q.status === "draft"));
 
   // Same three-hop shape (event_vendors -> payment_plans -> installments)
   // and the same isInstallmentOverdue check the event page's own
@@ -140,6 +148,22 @@ export default async function VendorDashboardPage({ params }: PageProps<"/vendor
         />
       )}
 
+      {/* An admin hid this listing (moderation). The team still gets its
+          dashboard, so tell them why planners can't find them. */}
+      {vendor.hidden_at && (
+        <div className="rounded-[22px] border-2 border-primary bg-primary-soft p-4">
+          <p className="text-sm font-extrabold text-ink">This listing is hidden</p>
+          <p className="mt-1 text-xs font-semibold text-text">
+            Gather has hidden this business from planners while it&apos;s reviewed. If you think that&apos;s a mistake,
+            report an issue from your Profile.
+          </p>
+        </div>
+      )}
+
+      {featureStatus && (
+        <FeaturedStatusCard vendorId={vendorId} status={featureStatus} isOwner={access.role === "owner"} today={sastDayKey()} />
+      )}
+
       <div className="grid grid-cols-2 gap-2.5">
         <Link href={`/vendor/${vendorId}/dashboard/bookings`} className="relative flex flex-col gap-3 rounded-[20px] bg-primary-soft p-4">
           {needsQuote && (
@@ -159,6 +183,7 @@ export default async function VendorDashboardPage({ params }: PageProps<"/vendor
           <span className="text-[13px] font-extrabold text-ink">Bookings</span>
         </Link>
 
+        {canQuote && (
         <Link href={`/vendor/${vendorId}/dashboard/payments`} className="relative flex flex-col gap-3 rounded-[20px] bg-secondary-soft p-4">
           {hasOverduePayment && (
             <span
@@ -174,6 +199,7 @@ export default async function VendorDashboardPage({ params }: PageProps<"/vendor
           </svg>
           <span className="text-[13px] font-extrabold text-ink">Payments</span>
         </Link>
+        )}
 
         <Link href={`/vendor/${vendorId}/dashboard/services`} className="flex flex-col gap-3 rounded-[20px] bg-success-soft p-4">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

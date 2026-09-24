@@ -34,7 +34,9 @@ export default async function VendorGalleryPage({ params }: PageProps<"/vendor/[
   if (!access.isTeamMember) {
     notFound();
   }
-  const canQuote = access.role === "owner" || access.role === "manager";
+  // Staff may add photos (e.g. a second shooter's work) but only
+  // Owner/Manager may remove them — same split as the database policies.
+  const canDelete = access.role === "owner" || access.role === "manager";
   const isVerified = vendor.verification_status === "verified";
 
   const { data: galleryImages } = await supabase
@@ -60,7 +62,7 @@ export default async function VendorGalleryPage({ params }: PageProps<"/vendor/[
                     Storage public URL isn't a static/optimizable asset
                     next/image can source-check at build time. */}
                 <img src={publicUrl.publicUrl} alt={image.caption ?? ""} className="aspect-square w-full object-cover" />
-                {canQuote && (
+                {canDelete && (
                   <form action={removeVendorGalleryImage} className="absolute right-1.5 top-1.5">
                     <input type="hidden" name="imageId" value={image.id} />
                     <input type="hidden" name="vendorId" value={vendorId} />
@@ -89,7 +91,7 @@ export default async function VendorGalleryPage({ params }: PageProps<"/vendor/[
         </Card>
       )}
 
-      {canQuote &&
+      {access.isTeamMember &&
         (!isVerified ? (
           <Card>
             <p className="text-sm font-semibold text-text-muted">

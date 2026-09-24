@@ -7,6 +7,9 @@ interface SendEmailInput {
   to: string;
   subject: string;
   html: string;
+  // Plain-text alternative. Every Gather email built with renderEmail()
+  // (src/lib/email/layout.ts) has one; spam filters and some readers want it.
+  text?: string;
 }
 
 interface SendEmailResult {
@@ -25,13 +28,13 @@ interface SendEmailResult {
 // other side-effect-only write in this app already has (e.g. a failed
 // Storage cleanup after a rolled-back insert). A caller that needs to know
 // whether it actually sent checks the returned `ok`.
-export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<SendEmailResult> {
+export async function sendEmail({ to, subject, html, text }: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
 
   try {
     if (apiKey) {
       const resend = new Resend(apiKey);
-      const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+      const { error } = await resend.emails.send({ from: FROM, to, subject, html, text });
       if (error) {
         return { ok: false, error: error.message };
       }
@@ -44,11 +47,37 @@ export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<
       secure: false,
       ignoreTLS: true,
     });
-    await transport.sendMail({ from: FROM, to, subject, html });
+    await transport.sendMail({ from: FROM, to, subject, html, text });
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Unknown email error" };
   }
+}
+
+// Many emails at once (admin sends). Resend's batch endpoint takes up to 100
+// per call; a rejected chunk marks each of its messages failed. Locally
+// (no RESEND_API_KEY) it's one Mailpit delivery per message. Returns one
+// result per input, in order. Never throws.
+export async function sendEmailBatch(messages: SendEmailInput[]): Promise<SendEmailResult[]> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    const results: SendEmailResult[] = [];
+    for (const m of messages) results.push(await sendEmail(m));
+    return results;
+  }
+  const resend = new Resend(apiKey);
+  const results: SendEmailResult[] = [];
+  for (let i = 0; i < messages.length; i += 100) {
+    const chunk = messages.slice(i, i + 100);
+    try {
+      const { error } = await resend.batch.send(chunk.map((m) => ({ from: FROM, to: m.to, subject: m.subject, html: m.html, text: m.text })));
+      for (let j = 0; j < chunk.length; j++) results.push(error ? { ok: false, error: error.message } : { ok: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown email error";
+      for (let j = 0; j < chunk.length; j++) results.push({ ok: false, error: message });
+    }
+  }
+  return results;
 }
 
 // No NEXT_PUBLIC_SITE_URL exists yet anywhere in this app (no production

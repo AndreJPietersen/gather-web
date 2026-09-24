@@ -63,7 +63,7 @@ export default async function VendorTeamPage({ params }: PageProps<"/vendor/[ven
       <PageHeader title="Team">
         <p className="text-sm font-semibold text-text-muted">{vendor.name}</p>
         <p className="text-xs font-semibold text-text-muted">
-          Managers can edit the business and send quotes; Staff can only view bookings.
+          Managers can edit the business, send quotes and see payments. Staff can chat, add gallery photos, keep team notes and suggest quotes for a Manager to send — but can&apos;t see prices or payments.
         </p>
       </PageHeader>
 

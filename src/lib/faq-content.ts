@@ -99,9 +99,44 @@ export const FAQ_SECTIONS: FaqSection[] = [
           "Open the vendor's page and tap \"Claim this business,\" then tell us how we can confirm it's really yours. An admin reviews claims by hand before your listing goes live under your account.",
       },
       {
+        question: "How does my business get featured?",
+        answer:
+          "When featured spots are open, the business owner can tap \"Get featured\" on the vendor dashboard, pick a top spot or the rotating row, choose 1 week, 1 month or 3 months, and send a request. Nothing is charged when you ask — Gather confirms the price and dates with you first, and the spot only goes live once it's confirmed. You can see the prices on the Get featured page, and withdraw a request while it's still waiting.",
+      },
+      {
+        question: "What can Owners, Managers and Staff on a vendor team do?",
+        answer:
+          "Owners run the business: everything a Manager can do, plus managing the team and requesting featured spots. Managers edit the business profile, services and gallery, send quotes, reply to reviews and see payments. Staff can chat with planners, add photos to the gallery, keep private team notes on a booking, and suggest a quote — a Manager reviews it before the planner sees it. Staff don't see prices or payments.",
+      },
+      {
         question: "I manage both events and a vendor business — do I need two accounts?",
         answer:
-          "No. If your account is linked to both a planner profile and a vendor team, use the switcher on your Profile tab to move between the two views without signing out.",
+          "No. If your account is linked to both a planner profile and a vendor team, Gather asks who you're here as each time you log in, and you can switch any time from your Profile tab without signing out.",
+      },
+      {
+        question: "How do I add another business, and is there a limit?",
+        answer:
+          "Tap \"+ Add a business\" on your Profile tab. You can own up to 5 businesses, one per category — so not two Photography businesses, for example. If you genuinely need more, or a second one in the same category, the form lets you send a request with a short reason; once an admin approves it, come back and create it as normal.",
+      },
+      {
+        question: "Why can't I add another listing today?",
+        answer:
+          "To keep the marketplace free of spam, each person can add a limited number of vendor listings per 24 hours — placeholder listings for vendors not on Gather yet and your own businesses together. Try again the next day, or report an issue from your Profile if you genuinely need more.",
+      },
+      {
+        question: "It says I'm \"doing that a lot\" — what happened?",
+        answer:
+          "To protect Gather from spam and automated abuse, there's a generous hourly limit on how many of each thing one person can create — events, messages, invites and so on. Normal use never gets close; if you hit it, wait a little while and try again, or report an issue from your Profile if it keeps happening.",
+      },
+      {
+        question: "I can't create an account — is something wrong?",
+        answer:
+          "Sign-ups are occasionally paused for a short while. If the sign-up page says so, please check back soon. If you already have an account you can still log in as normal.",
+      },
+      {
+        question: "How do I stop Gather news and announcement emails?",
+        answer:
+          "Tap \"Unsubscribe from Gather announcements\" at the bottom of any announcement email, or untick \"Gather news & announcements\" under Notifications on your Profile tab. Reminders about your own events and emails about your account still arrive — turn off email reminders on your Profile if you don't want those either.",
       },
       {
         question: "Can't find an answer here?",

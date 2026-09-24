@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { friendlyWriteError } from "@/lib/db-errors";
 
 const schema = z.object({
   vendorId: z.string().uuid(),
@@ -57,7 +58,7 @@ export async function submitClaim(_prevState: ClaimFormState, formData: FormData
   });
 
   if (error) {
-    return { error: "Something went wrong submitting your claim. Please try again." };
+    return { error: friendlyWriteError(error, "Something went wrong submitting your claim. Please try again.") };
   }
 
   redirect(`/vendors/${vendorId}`);

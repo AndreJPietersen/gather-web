@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { supportCaseCategoryLabel } from "@/lib/support-case-categories";
 import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/image-upload-limits";
+import { friendlyWriteError } from "@/lib/db-errors";
 
 const schema = z.object({
   category: z.enum(["payments_billing", "vendor_booking", "event_setup", "account_verification", "app_bug", "other"], {
@@ -87,7 +88,7 @@ export async function createSupportCase(_prevState: NewSupportCaseState, formDat
     if (attachmentPath) {
       await supabase.storage.from("support-case-attachments").remove([attachmentPath]);
     }
-    return { error: "Something went wrong submitting that. Please try again." };
+    return { error: friendlyWriteError(error, "Something went wrong submitting that. Please try again.") };
   }
 
   redirect(`/profile/cases/${created.id}`);

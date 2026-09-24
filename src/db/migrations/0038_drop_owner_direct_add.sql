@@ -1,0 +1,1 @@
+DROP POLICY "vendor_team_members_insert_by_existing_owner" ON "vendor_team_members" CASCADE;

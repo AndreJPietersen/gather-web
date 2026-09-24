@@ -8,7 +8,17 @@ import { submitQuote, type SubmitQuoteState } from "./actions";
 
 const initialState: SubmitQuoteState = {};
 
-export function SubmitQuoteForm({ eventVendorId, vendorId }: { eventVendorId: string; vendorId: string }) {
+// Owner/Manager: sends a quote straight to the planner. Staff
+// (isSuggestion): saves it as a suggestion a Manager sends or discards.
+export function SubmitQuoteForm({
+  eventVendorId,
+  vendorId,
+  isSuggestion = false,
+}: {
+  eventVendorId: string;
+  vendorId: string;
+  isSuggestion?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(submitQuote, initialState);
 
   return (
@@ -19,8 +29,11 @@ export function SubmitQuoteForm({ eventVendorId, vendorId }: { eventVendorId: st
       <Input name="description" placeholder="Description (optional)" />
       {state.error && <p className="text-xs font-semibold text-primary">{state.error}</p>}
       <Button type="submit" variant="secondary" disabled={pending}>
-        {pending ? "Sending…" : "Send a Quote"}
+        {pending ? "Saving…" : isSuggestion ? "Suggest a Quote" : "Send a Quote"}
       </Button>
+      {isSuggestion && (
+        <p className="text-[11px] font-semibold text-text-muted">A Manager reviews it before the planner sees it.</p>
+      )}
     </form>
   );
 }

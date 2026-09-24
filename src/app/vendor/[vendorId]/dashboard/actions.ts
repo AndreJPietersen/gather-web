@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { MAX_GALLERY_IMAGES } from "@/lib/gallery-limits";
 import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/image-upload-limits";
+import { friendlyWriteError } from "@/lib/db-errors";
+import { getVendorAccess } from "../access";
 
 const quoteSchema = z.object({
   eventVendorId: z.string().uuid(),
@@ -17,8 +19,11 @@ export interface SubmitQuoteState {
   error?: string;
 }
 
-// Gated by vendor_quotes_insert_vendor_manager (Owner/Manager only — Staff
-// has view-only access to bookings and quotes per the Persona Model).
+// Owner/Manager send a quote straight to the planner. Staff can only
+// *suggest* one: it's saved as a draft carrying their id (suggested_by),
+// which the planner side can't see, until an Owner/Manager sends or
+// discards it. vendor_quotes_insert_vendor_manager enforces the same split in
+// the database — the role check here only picks which kind to write.
 export async function submitQuote(_prevState: SubmitQuoteState, formData: FormData): Promise<SubmitQuoteState> {
   const parsed = quoteSchema.safeParse({
     eventVendorId: formData.get("eventVendorId"),
@@ -34,21 +39,99 @@ export async function submitQuote(_prevState: SubmitQuoteState, formData: FormDa
   const { eventVendorId, vendorId, amount, description } = parsed.data;
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Your session expired — please log in again." };
+  const access = await getVendorAccess(vendorId, user.id);
+  if (!access.isTeamMember) return { error: "You're not on this business's team." };
+  const isSuggestion = access.role === "staff";
+
   const { error } = await supabase.from("vendor_quotes").insert({
     event_vendor_id: eventVendorId,
     amount,
     description: description || null,
-    status: "sent",
+    status: isSuggestion ? "draft" : "sent",
     created_by_vendor: true,
+    suggested_by: isSuggestion ? user.id : null,
   });
 
   if (error) {
-    return { error: "Something went wrong sending that quote. Please try again." };
+    return { error: friendlyWriteError(error, "Something went wrong saving that quote. Please try again.") };
   }
 
   revalidatePath(`/vendor/${vendorId}/dashboard`);
   revalidatePath(`/vendor/${vendorId}/dashboard/bookings`);
   return {};
+}
+
+// A Manager/Owner approving a Staff suggestion: draft → sent, which is the
+// moment the planner can see it. The status rules on vendor_quotes only let
+// the vendor side move a quote to 'sent' or keep it a 'draft'.
+export async function sendSuggestedQuote(formData: FormData): Promise<void> {
+  const parsed = z.object({ quoteId: z.string().uuid(), vendorId: z.string().uuid() }).safeParse({
+    quoteId: formData.get("quoteId"),
+    vendorId: formData.get("vendorId"),
+  });
+  if (!parsed.success) return;
+  const supabase = await createClient();
+  await supabase.from("vendor_quotes").update({ status: "sent" }).eq("id", parsed.data.quoteId).eq("status", "draft");
+  revalidatePath(`/vendor/${parsed.data.vendorId}/dashboard`);
+  revalidatePath(`/vendor/${parsed.data.vendorId}/dashboard/bookings`);
+}
+
+// Discarding a suggestion (Owner/Manager) or withdrawing your own (Staff).
+// Only drafts can ever be deleted — vendor_quotes_delete_draft.
+export async function discardSuggestedQuote(formData: FormData): Promise<void> {
+  const parsed = z.object({ quoteId: z.string().uuid(), vendorId: z.string().uuid() }).safeParse({
+    quoteId: formData.get("quoteId"),
+    vendorId: formData.get("vendorId"),
+  });
+  if (!parsed.success) return;
+  const supabase = await createClient();
+  await supabase.from("vendor_quotes").delete().eq("id", parsed.data.quoteId).eq("status", "draft");
+  revalidatePath(`/vendor/${parsed.data.vendorId}/dashboard/bookings`);
+}
+
+const noteSchema = z.object({
+  eventVendorId: z.string().uuid(),
+  vendorId: z.string().uuid(),
+  body: z.string().trim().max(2000, "Keep the note under 2000 characters."),
+});
+
+export interface BookingNoteState {
+  error?: string;
+  saved?: boolean;
+}
+
+// The vendor team's private note on a booking — any team member, Staff
+// included, can write it; the planner side never sees it (RLS on
+// vendor_booking_notes has only a vendor-team branch).
+export async function saveBookingNote(_prev: BookingNoteState, formData: FormData): Promise<BookingNoteState> {
+  const parsed = noteSchema.safeParse({
+    eventVendorId: formData.get("eventVendorId"),
+    vendorId: formData.get("vendorId"),
+    body: formData.get("body") ?? "",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Please check the note." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Your session expired — please log in again." };
+
+  const { error } = await supabase.from("vendor_booking_notes").upsert(
+    {
+      event_vendor_id: parsed.data.eventVendorId,
+      body: parsed.data.body,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "event_vendor_id" },
+  );
+  if (error) return { error: friendlyWriteError(error, "Couldn't save that note. Please try again.") };
+  revalidatePath(`/vendor/${parsed.data.vendorId}/dashboard/bookings`);
+  return { saved: true };
 }
 
 const serviceSchema = z.object({

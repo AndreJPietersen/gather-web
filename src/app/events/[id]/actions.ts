@@ -4,6 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient, findUserByEmail } from "@/lib/supabase/service";
+import { friendlyWriteError } from "@/lib/db-errors";
 
 const rsvpSchema = z.object({
   eventId: z.string().uuid(),
@@ -128,7 +129,7 @@ export async function inviteCollaborator(
   });
 
   if (error) {
-    return { error: "Something went wrong sending the invite — they may already be invited." };
+    return { error: friendlyWriteError(error, "Something went wrong sending the invite — they may already be invited.") };
   }
 
   // Deliberately not calling revalidatePath here: Phase 4 found that any

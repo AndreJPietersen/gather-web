@@ -232,6 +232,174 @@
       "when": 1790190333657,
       "tag": "0032_drop_vendor_is_featured",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1790252078860,
+      "tag": "0033_feature_requests_and_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1790252094600,
+      "tag": "0034_seed_feature_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790252549153,
+      "tag": "0035_app_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1790252552580,
+      "tag": "0036_featured_switch",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790253282695,
+      "tag": "0037_vendor_business_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790254450453,
+      "tag": "0038_drop_owner_direct_add",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1790254453926,
+      "tag": "0039_admin_watchlist",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790254500418,
+      "tag": "0040_team_member_update_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1790254995797,
+      "tag": "0041_admin_moderation",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790255005230,
+      "tag": "0042_admin_watchlist_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790255243352,
+      "tag": "0043_registration_switch",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1790255246814,
+      "tag": "0044_registration_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790255332397,
+      "tag": "0045_listing_daily_limit",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790255335907,
+      "tag": "0046_listing_daily_limit_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790255455813,
+      "tag": "0047_block_suspended_writes",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1790256104176,
+      "tag": "0048_limits_and_rate_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1790256115256,
+      "tag": "0049_security_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1790256118669,
+      "tag": "0050_write_rate_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1790256423522,
+      "tag": "0051_review_reply_upsert_grant",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1790257430847,
+      "tag": "0052_staff_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1790257458697,
+      "tag": "0053_quote_status_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1790257462135,
+      "tag": "0054_staff_storage_and_limits",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1790270145264,
+      "tag": "0055_admin_email",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1790270148795,
+      "tag": "0056_admin_email_seed_and_audience",
+      "breakpoints": true
     }
   ]
 }

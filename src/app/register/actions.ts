@@ -3,12 +3,15 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getRegistrationEnabled } from "@/lib/app-settings";
 
 const signUpSchema = z.object({
   email: z.string().trim().email("That doesn't look like a valid email").max(200),
   password: z.string().min(8, "Password must be at least 8 characters").max(72),
   persona: z.enum(["planner", "vendor"]),
 });
+
+const REGISTRATION_CLOSED_MESSAGE = "Sign-ups are paused right now. Please check back soon.";
 
 export interface SignUpState {
   error?: string;
@@ -30,6 +33,10 @@ export async function signUp(_prevState: SignUpState, formData: FormData): Promi
   }
 
   const { email, password, persona } = parsed.data;
+
+  if (!(await getRegistrationEnabled())) {
+    return { error: REGISTRATION_CLOSED_MESSAGE };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({ email, password });

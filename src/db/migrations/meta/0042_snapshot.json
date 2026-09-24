@@ -1,0 +1,5380 @@
+{
+  "id": "5fc685b2-0946-45a6-a9ed-4a1986aa395c",
+  "prevId": "e8629266-e711-4632-93b7-3f82333d454e",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.admin_audit_log": {
+      "name": "admin_audit_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "admin_id": {
+          "name": "admin_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_table": {
+          "name": "target_table",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_id": {
+          "name": "target_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detail": {
+          "name": "detail",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "admin_audit_log_admin_id_idx": {
+          "name": "admin_audit_log_admin_id_idx",
+          "columns": [
+            {
+              "expression": "admin_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "admin_audit_log_target_idx": {
+          "name": "admin_audit_log_target_idx",
+          "columns": [
+            {
+              "expression": "target_table",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "target_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "admin_audit_log_created_at_idx": {
+          "name": "admin_audit_log_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "admin_audit_log_admin_id_profiles_id_fk": {
+          "name": "admin_audit_log_admin_id_profiles_id_fk",
+          "tableFrom": "admin_audit_log",
+          "columnsFrom": [
+            "admin_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.admin_watchlist_dismissals": {
+      "name": "admin_watchlist_dismissals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "signal": {
+          "name": "signal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject_key": {
+          "name": "subject_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hits_at_dismissal": {
+          "name": "hits_at_dismissal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dismissed_by": {
+          "name": "dismissed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "admin_watchlist_dismissals_subject_unique": {
+          "name": "admin_watchlist_dismissals_subject_unique",
+          "columns": [
+            {
+              "expression": "signal",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "admin_watchlist_dismissals_dismissed_by_profiles_id_fk": {
+          "name": "admin_watchlist_dismissals_dismissed_by_profiles_id_fk",
+          "tableFrom": "admin_watchlist_dismissals",
+          "columnsFrom": [
+            "dismissed_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.app_settings": {
+      "name": "app_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "boolean",
+          "primaryKey": true,
+          "notNull": true,
+          "default": true
+        },
+        "featured_enabled": {
+          "name": "featured_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "app_settings_select_public": {
+          "name": "app_settings_select_public",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {
+        "app_settings_singleton_check": {
+          "name": "app_settings_singleton_check",
+          "value": "\"app_settings\".\"id\""
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.budget_items": {
+      "name": "budget_items",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budgeted_amount": {
+          "name": "budgeted_amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_vendor_id": {
+          "name": "event_vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "budget_items_event_id_idx": {
+          "name": "budget_items_event_id_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "budget_items_event_id_events_id_fk": {
+          "name": "budget_items_event_id_events_id_fk",
+          "tableFrom": "budget_items",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "tableTo": "events",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "budget_items_category_id_service_categories_id_fk": {
+          "name": "budget_items_category_id_service_categories_id_fk",
+          "tableFrom": "budget_items",
+          "columnsFrom": [
+            "category_id"
+          ],
+          "tableTo": "service_categories",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "budget_items_event_vendor_id_event_vendors_id_fk": {
+          "name": "budget_items_event_vendor_id_event_vendors_id_fk",
+          "tableFrom": "budget_items",
+          "columnsFrom": [
+            "event_vendor_id"
+          ],
+          "tableTo": "event_vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "budget_items_select_owner_or_collaborator": {
+          "name": "budget_items_select_owner_or_collaborator",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"budget_items\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"budget_items\".\"event_id\", (select auth.uid()))"
+        },
+        "budget_items_insert_owner_or_editor": {
+          "name": "budget_items_insert_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_event_owner(\"budget_items\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"budget_items\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "budget_items_update_owner_or_editor": {
+          "name": "budget_items_update_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"budget_items\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"budget_items\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "budget_items_delete_owner_or_editor": {
+          "name": "budget_items_delete_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"budget_items\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"budget_items\".\"event_id\", (select auth.uid()), 'editor')"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_attendees": {
+      "name": "event_attendees",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_user_id": {
+          "name": "contact_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rsvp_status": {
+          "name": "rsvp_status",
+          "type": "rsvp_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'no_response'"
+        },
+        "guest_count": {
+          "name": "guest_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_attendees_event_id_idx": {
+          "name": "event_attendees_event_id_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "event_attendees_event_id_events_id_fk": {
+          "name": "event_attendees_event_id_events_id_fk",
+          "tableFrom": "event_attendees",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "tableTo": "events",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "event_attendees_contact_user_id_profiles_id_fk": {
+          "name": "event_attendees_contact_user_id_profiles_id_fk",
+          "tableFrom": "event_attendees",
+          "columnsFrom": [
+            "contact_user_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "event_attendees_select_owner_or_collaborator": {
+          "name": "event_attendees_select_owner_or_collaborator",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_attendees\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_attendees\".\"event_id\", (select auth.uid()))"
+        },
+        "event_attendees_insert_owner_or_editor": {
+          "name": "event_attendees_insert_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_event_owner(\"event_attendees\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_attendees\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_attendees_update_owner_or_editor": {
+          "name": "event_attendees_update_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_attendees\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_attendees\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_attendees_delete_owner_or_editor": {
+          "name": "event_attendees_delete_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_attendees\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_attendees\".\"event_id\", (select auth.uid()), 'editor')"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_collaborators": {
+      "name": "event_collaborators",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "permission_level": {
+          "name": "permission_level",
+          "type": "collaborator_permission",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'viewer'"
+        },
+        "status": {
+          "name": "status",
+          "type": "invitation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'invited'"
+        },
+        "invited_by": {
+          "name": "invited_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_collaborators_event_id_idx": {
+          "name": "event_collaborators_event_id_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "event_collaborators_user_id_idx": {
+          "name": "event_collaborators_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "event_collaborators_event_id_events_id_fk": {
+          "name": "event_collaborators_event_id_events_id_fk",
+          "tableFrom": "event_collaborators",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "tableTo": "events",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "event_collaborators_user_id_profiles_id_fk": {
+          "name": "event_collaborators_user_id_profiles_id_fk",
+          "tableFrom": "event_collaborators",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "event_collaborators_invited_by_profiles_id_fk": {
+          "name": "event_collaborators_invited_by_profiles_id_fk",
+          "tableFrom": "event_collaborators",
+          "columnsFrom": [
+            "invited_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "event_collaborators_select_self_or_event_owner": {
+          "name": "event_collaborators_select_self_or_event_owner",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"event_collaborators\".\"user_id\" = (select auth.uid()) OR public.is_event_owner(\"event_collaborators\".\"event_id\", (select auth.uid()))"
+        },
+        "event_collaborators_select_vendor_side": {
+          "name": "event_collaborators_select_vendor_side",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.event_id = \"event_collaborators\".\"event_id\" AND public.is_vendor_team_member(ev.vendor_id, (select auth.uid()))\n      )"
+        },
+        "event_collaborators_insert_owner_or_editor": {
+          "name": "event_collaborators_insert_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_event_owner(\"event_collaborators\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_collaborators\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_collaborators_update_self_or_event_owner": {
+          "name": "event_collaborators_update_self_or_event_owner",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"event_collaborators\".\"user_id\" = (select auth.uid()) OR public.is_event_owner(\"event_collaborators\".\"event_id\", (select auth.uid()))"
+        },
+        "event_collaborators_delete_event_owner": {
+          "name": "event_collaborators_delete_event_owner",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_collaborators\".\"event_id\", (select auth.uid()))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_gallery_images": {
+      "name": "event_gallery_images",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_path": {
+          "name": "storage_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "caption": {
+          "name": "caption",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_gallery_images_event_id_idx": {
+          "name": "event_gallery_images_event_id_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "event_gallery_images_event_id_events_id_fk": {
+          "name": "event_gallery_images_event_id_events_id_fk",
+          "tableFrom": "event_gallery_images",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "tableTo": "events",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "event_gallery_images_created_by_profiles_id_fk": {
+          "name": "event_gallery_images_created_by_profiles_id_fk",
+          "tableFrom": "event_gallery_images",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "event_gallery_images_select_owner_or_collaborator": {
+          "name": "event_gallery_images_select_owner_or_collaborator",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_gallery_images\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_gallery_images\".\"event_id\", (select auth.uid()))"
+        },
+        "event_gallery_images_insert_owner_or_editor": {
+          "name": "event_gallery_images_insert_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_event_owner(\"event_gallery_images\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_gallery_images\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_gallery_images_delete_owner_or_editor": {
+          "name": "event_gallery_images_delete_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_gallery_images\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_gallery_images\".\"event_id\", (select auth.uid()), 'editor')"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_mood_board_photos": {
+      "name": "event_mood_board_photos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_path": {
+          "name": "storage_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_featured": {
+          "name": "is_featured",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "featured_at": {
+          "name": "featured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_mood_board_photos_event_id_idx": {
+          "name": "event_mood_board_photos_event_id_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "event_mood_board_photos_event_id_events_id_fk": {
+          "name": "event_mood_board_photos_event_id_events_id_fk",
+          "tableFrom": "event_mood_board_photos",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "tableTo": "events",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "event_mood_board_photos_created_by_profiles_id_fk": {
+          "name": "event_mood_board_photos_created_by_profiles_id_fk",
+          "tableFrom": "event_mood_board_photos",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "event_mood_board_photos_select_owner_or_collaborator": {
+          "name": "event_mood_board_photos_select_owner_or_collaborator",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_mood_board_photos\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_mood_board_photos\".\"event_id\", (select auth.uid()))"
+        },
+        "event_mood_board_photos_insert_owner_or_editor": {
+          "name": "event_mood_board_photos_insert_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_event_owner(\"event_mood_board_photos\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_mood_board_photos\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_mood_board_photos_update_owner_or_editor": {
+          "name": "event_mood_board_photos_update_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_mood_board_photos\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_mood_board_photos\".\"event_id\", (select auth.uid()), 'editor')",
+          "withCheck": "public.is_event_owner(\"event_mood_board_photos\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_mood_board_photos\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_mood_board_photos_delete_owner_or_editor": {
+          "name": "event_mood_board_photos_delete_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_mood_board_photos\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_mood_board_photos\".\"event_id\", (select auth.uid()), 'editor')"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_mood_boards": {
+      "name": "event_mood_boards",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tagline": {
+          "name": "tagline",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "palette": {
+          "name": "palette",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "event_mood_boards_event_id_events_id_fk": {
+          "name": "event_mood_boards_event_id_events_id_fk",
+          "tableFrom": "event_mood_boards",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "tableTo": "events",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "event_mood_boards_event_id_unique": {
+          "name": "event_mood_boards_event_id_unique",
+          "columns": [
+            "event_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "event_mood_boards_select_owner_or_collaborator": {
+          "name": "event_mood_boards_select_owner_or_collaborator",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_mood_boards\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_mood_boards\".\"event_id\", (select auth.uid()))"
+        },
+        "event_mood_boards_insert_owner_or_editor": {
+          "name": "event_mood_boards_insert_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_event_owner(\"event_mood_boards\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_mood_boards\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_mood_boards_update_owner_or_editor": {
+          "name": "event_mood_boards_update_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_mood_boards\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_mood_boards\".\"event_id\", (select auth.uid()), 'editor')",
+          "withCheck": "public.is_event_owner(\"event_mood_boards\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_mood_boards\".\"event_id\", (select auth.uid()), 'editor')"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_tasks": {
+      "name": "event_tasks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed": {
+          "name": "completed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "priority": {
+          "name": "priority",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_to": {
+          "name": "assigned_to",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_tasks_event_id_idx": {
+          "name": "event_tasks_event_id_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "event_tasks_event_id_events_id_fk": {
+          "name": "event_tasks_event_id_events_id_fk",
+          "tableFrom": "event_tasks",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "tableTo": "events",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "event_tasks_assigned_to_profiles_id_fk": {
+          "name": "event_tasks_assigned_to_profiles_id_fk",
+          "tableFrom": "event_tasks",
+          "columnsFrom": [
+            "assigned_to"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "event_tasks_select_owner_or_collaborator": {
+          "name": "event_tasks_select_owner_or_collaborator",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_tasks\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_tasks\".\"event_id\", (select auth.uid()))"
+        },
+        "event_tasks_insert_owner_or_editor": {
+          "name": "event_tasks_insert_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_event_owner(\"event_tasks\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_tasks\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_tasks_update_owner_or_editor": {
+          "name": "event_tasks_update_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_tasks\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_tasks\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_tasks_delete_owner_or_editor": {
+          "name": "event_tasks_delete_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_tasks\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_tasks\".\"event_id\", (select auth.uid()), 'editor')"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_type_service_categories": {
+      "name": "event_type_service_categories",
+      "schema": "",
+      "columns": {
+        "event_type_id": {
+          "name": "event_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_category_id": {
+          "name": "service_category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_type_service_categories_service_category_id_idx": {
+          "name": "event_type_service_categories_service_category_id_idx",
+          "columns": [
+            {
+              "expression": "service_category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "event_type_service_categories_event_type_id_event_types_id_fk": {
+          "name": "event_type_service_categories_event_type_id_event_types_id_fk",
+          "tableFrom": "event_type_service_categories",
+          "columnsFrom": [
+            "event_type_id"
+          ],
+          "tableTo": "event_types",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "event_type_service_categories_service_category_id_service_categories_id_fk": {
+          "name": "event_type_service_categories_service_category_id_service_categories_id_fk",
+          "tableFrom": "event_type_service_categories",
+          "columnsFrom": [
+            "service_category_id"
+          ],
+          "tableTo": "service_categories",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "event_type_service_categories_event_type_id_service_category_id_pk": {
+          "name": "event_type_service_categories_event_type_id_service_category_id_pk",
+          "columns": [
+            "event_type_id",
+            "service_category_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "event_type_service_categories_select_all": {
+          "name": "event_type_service_categories_select_all",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_types": {
+      "name": "event_types",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_types_name_unique": {
+          "name": "event_types_name_unique",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "event_types_select_all": {
+          "name": "event_types_select_all",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_vendor_chat_reads": {
+      "name": "event_vendor_chat_reads",
+      "schema": "",
+      "columns": {
+        "event_vendor_id": {
+          "name": "event_vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_read_at": {
+          "name": "last_read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "event_vendor_chat_reads_event_vendor_id_event_vendors_id_fk": {
+          "name": "event_vendor_chat_reads_event_vendor_id_event_vendors_id_fk",
+          "tableFrom": "event_vendor_chat_reads",
+          "columnsFrom": [
+            "event_vendor_id"
+          ],
+          "tableTo": "event_vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "event_vendor_chat_reads_user_id_profiles_id_fk": {
+          "name": "event_vendor_chat_reads_user_id_profiles_id_fk",
+          "tableFrom": "event_vendor_chat_reads",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "event_vendor_chat_reads_event_vendor_id_user_id_pk": {
+          "name": "event_vendor_chat_reads_event_vendor_id_user_id_pk",
+          "columns": [
+            "event_vendor_id",
+            "user_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {
+        "event_vendor_chat_reads_select_own": {
+          "name": "event_vendor_chat_reads_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"event_vendor_chat_reads\".\"user_id\" = (select auth.uid())"
+        },
+        "event_vendor_chat_reads_upsert_own": {
+          "name": "event_vendor_chat_reads_upsert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"event_vendor_chat_reads\".\"user_id\" = (select auth.uid()) AND EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"event_vendor_chat_reads\".\"event_vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid()))\n          OR public.is_event_collaborator(ev.event_id, (select auth.uid()))\n          OR public.is_vendor_team_member(ev.vendor_id, (select auth.uid()))\n        )\n      )"
+        },
+        "event_vendor_chat_reads_update_own": {
+          "name": "event_vendor_chat_reads_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"event_vendor_chat_reads\".\"user_id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_vendor_messages": {
+      "name": "event_vendor_messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_vendor_id": {
+          "name": "event_vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender_id": {
+          "name": "sender_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "storage_path": {
+          "name": "storage_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_vendor_messages_event_vendor_id_idx": {
+          "name": "event_vendor_messages_event_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "event_vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "event_vendor_messages_event_vendor_id_event_vendors_id_fk": {
+          "name": "event_vendor_messages_event_vendor_id_event_vendors_id_fk",
+          "tableFrom": "event_vendor_messages",
+          "columnsFrom": [
+            "event_vendor_id"
+          ],
+          "tableTo": "event_vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "event_vendor_messages_sender_id_profiles_id_fk": {
+          "name": "event_vendor_messages_sender_id_profiles_id_fk",
+          "tableFrom": "event_vendor_messages",
+          "columnsFrom": [
+            "sender_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "event_vendor_messages_select_event_side_or_vendor_side": {
+          "name": "event_vendor_messages_select_event_side_or_vendor_side",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"event_vendor_messages\".\"event_vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid()))\n          OR public.is_event_collaborator(ev.event_id, (select auth.uid()))\n          OR public.is_vendor_team_member(ev.vendor_id, (select auth.uid()))\n        )\n      )"
+        },
+        "event_vendor_messages_insert_event_editor_or_vendor_member": {
+          "name": "event_vendor_messages_insert_event_editor_or_vendor_member",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"event_vendor_messages\".\"sender_id\" = (select auth.uid()) AND EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"event_vendor_messages\".\"event_vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid()))\n          OR public.is_event_collaborator(ev.event_id, (select auth.uid()), 'editor')\n          OR (public.is_vendor_team_member(ev.vendor_id, (select auth.uid())) AND public.is_vendor_verified(ev.vendor_id))\n        )\n      )"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.event_vendors": {
+      "name": "event_vendors",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vendor_id": {
+          "name": "vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "event_vendor_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'interested'"
+        },
+        "vendor_type": {
+          "name": "vendor_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmed": {
+          "name": "confirmed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "event_vendors_event_id_idx": {
+          "name": "event_vendors_event_id_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "event_vendors_vendor_id_idx": {
+          "name": "event_vendors_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "event_vendors_event_id_events_id_fk": {
+          "name": "event_vendors_event_id_events_id_fk",
+          "tableFrom": "event_vendors",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "tableTo": "events",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "event_vendors_vendor_id_vendors_id_fk": {
+          "name": "event_vendors_vendor_id_vendors_id_fk",
+          "tableFrom": "event_vendors",
+          "columnsFrom": [
+            "vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "event_vendors_select_event_side_or_vendor_side": {
+          "name": "event_vendors_select_event_side_or_vendor_side",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_vendors\".\"event_id\", (select auth.uid()))\n        OR public.is_event_collaborator(\"event_vendors\".\"event_id\", (select auth.uid()))\n        OR public.is_vendor_team_member(\"event_vendors\".\"vendor_id\", (select auth.uid()))"
+        },
+        "event_vendors_insert_event_editor": {
+          "name": "event_vendors_insert_event_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_event_owner(\"event_vendors\".\"event_id\", (select auth.uid())) OR public.is_event_collaborator(\"event_vendors\".\"event_id\", (select auth.uid()), 'editor')"
+        },
+        "event_vendors_update_event_editor_or_vendor_manager": {
+          "name": "event_vendors_update_event_editor_or_vendor_manager",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_owner(\"event_vendors\".\"event_id\", (select auth.uid()))\n        OR public.is_event_collaborator(\"event_vendors\".\"event_id\", (select auth.uid()), 'editor')\n        OR public.is_vendor_team_member(\"event_vendors\".\"vendor_id\", (select auth.uid()), ARRAY['owner', 'manager'])"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.events": {
+      "name": "events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event_type_id": {
+          "name": "event_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "event_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "visibility": {
+          "name": "visibility",
+          "type": "event_visibility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'private'"
+        },
+        "start_at": {
+          "name": "start_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_at": {
+          "name": "end_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rsvp_date": {
+          "name": "rsvp_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "budget_total": {
+          "name": "budget_total",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "budget_warning_percent": {
+          "name": "budget_warning_percent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_image_url": {
+          "name": "cover_image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "events_owner_id_idx": {
+          "name": "events_owner_id_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "events_event_type_id_idx": {
+          "name": "events_event_type_id_idx",
+          "columns": [
+            {
+              "expression": "event_type_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "events_owner_id_profiles_id_fk": {
+          "name": "events_owner_id_profiles_id_fk",
+          "tableFrom": "events",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "events_event_type_id_event_types_id_fk": {
+          "name": "events_event_type_id_event_types_id_fk",
+          "tableFrom": "events",
+          "columnsFrom": [
+            "event_type_id"
+          ],
+          "tableTo": "event_types",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "events_select_public": {
+          "name": "events_select_public",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "\"events\".\"status\" = 'published' AND \"events\".\"visibility\" = 'public'"
+        },
+        "events_select_owner_or_collaborator": {
+          "name": "events_select_owner_or_collaborator",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"events\".\"owner_id\" = (select auth.uid()) OR public.is_event_collaborator(\"events\".\"id\", (select auth.uid()))"
+        },
+        "events_select_pending_invitee": {
+          "name": "events_select_pending_invitee",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_event_pending_invitee(\"events\".\"id\", (select auth.uid()))"
+        },
+        "events_select_vendor_side": {
+          "name": "events_select_vendor_side",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.event_id = \"events\".\"id\" AND public.is_vendor_team_member(ev.vendor_id, (select auth.uid()))\n      )"
+        },
+        "events_insert_own": {
+          "name": "events_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"events\".\"owner_id\" = (select auth.uid())"
+        },
+        "events_update_owner_or_editor": {
+          "name": "events_update_owner_or_editor",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"events\".\"owner_id\" = (select auth.uid()) OR public.is_event_collaborator(\"events\".\"id\", (select auth.uid()), 'editor')"
+        },
+        "events_delete_owner": {
+          "name": "events_delete_owner",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"events\".\"owner_id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.feature_prices": {
+      "name": "feature_prices",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "spot": {
+          "name": "spot",
+          "type": "feature_spot",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration": {
+          "name": "duration",
+          "type": "feature_duration",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "feature_prices_spot_duration_idx": {
+          "name": "feature_prices_spot_duration_idx",
+          "columns": [
+            {
+              "expression": "spot",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "duration",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "feature_prices_select_public": {
+          "name": "feature_prices_select_public",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {
+        "feature_prices_amount_check": {
+          "name": "feature_prices_amount_check",
+          "value": "\"feature_prices\".\"amount\" IS NULL OR \"feature_prices\".\"amount\" >= 0"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.notification_preferences": {
+      "name": "notification_preferences",
+      "schema": "",
+      "columns": {
+        "profile_id": {
+          "name": "profile_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email_reminders": {
+          "name": "email_reminders",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "sms_reminders": {
+          "name": "sms_reminders",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "push_reminders": {
+          "name": "push_reminders",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "upcoming_window": {
+          "name": "upcoming_window",
+          "type": "upcoming_window",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'one_week_before'"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "notification_preferences_profile_id_profiles_id_fk": {
+          "name": "notification_preferences_profile_id_profiles_id_fk",
+          "tableFrom": "notification_preferences",
+          "columnsFrom": [
+            "profile_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "notification_preferences_select_own": {
+          "name": "notification_preferences_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"notification_preferences\".\"profile_id\" = (select auth.uid())"
+        },
+        "notification_preferences_insert_own": {
+          "name": "notification_preferences_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"notification_preferences\".\"profile_id\" = (select auth.uid())"
+        },
+        "notification_preferences_update_own": {
+          "name": "notification_preferences_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"notification_preferences\".\"profile_id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.payment_installments": {
+      "name": "payment_installments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "payment_plan_id": {
+          "name": "payment_plan_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "installment_number": {
+          "name": "installment_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "due_date": {
+          "name": "due_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "installment_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "paid_on": {
+          "name": "paid_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payment_gateway": {
+          "name": "payment_gateway",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gateway_transaction_id": {
+          "name": "gateway_transaction_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gateway_status": {
+          "name": "gateway_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "proof_of_payment_path": {
+          "name": "proof_of_payment_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payment_installments_payment_plan_id_idx": {
+          "name": "payment_installments_payment_plan_id_idx",
+          "columns": [
+            {
+              "expression": "payment_plan_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "payment_installments_payment_plan_id_payment_plans_id_fk": {
+          "name": "payment_installments_payment_plan_id_payment_plans_id_fk",
+          "tableFrom": "payment_installments",
+          "columnsFrom": [
+            "payment_plan_id"
+          ],
+          "tableTo": "payment_plans",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "payment_installments_select_event_side_or_vendor_side": {
+          "name": "payment_installments_select_event_side_or_vendor_side",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM payment_plans pp JOIN event_vendors ev ON ev.id = pp.event_vendor_id\n        WHERE pp.id = \"payment_installments\".\"payment_plan_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid()))\n          OR public.is_event_collaborator(ev.event_id, (select auth.uid()))\n          OR public.is_vendor_team_member(ev.vendor_id, (select auth.uid()))\n        )\n      )"
+        },
+        "payment_installments_insert_event_editor": {
+          "name": "payment_installments_insert_event_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "EXISTS (\n        SELECT 1 FROM payment_plans pp JOIN event_vendors ev ON ev.id = pp.event_vendor_id\n        WHERE pp.id = \"payment_installments\".\"payment_plan_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid())) OR public.is_event_collaborator(ev.event_id, (select auth.uid()), 'editor')\n        )\n      )"
+        },
+        "payment_installments_update_event_editor": {
+          "name": "payment_installments_update_event_editor",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM payment_plans pp JOIN event_vendors ev ON ev.id = pp.event_vendor_id\n        WHERE pp.id = \"payment_installments\".\"payment_plan_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid())) OR public.is_event_collaborator(ev.event_id, (select auth.uid()), 'editor')\n        )\n      )"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.payment_plans": {
+      "name": "payment_plans",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_vendor_id": {
+          "name": "event_vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_amount": {
+          "name": "total_amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deposit_amount": {
+          "name": "deposit_amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deposit_due_date": {
+          "name": "deposit_due_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "payment_plan_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "budget_item_id": {
+          "name": "budget_item_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payment_plans_event_vendor_id_idx": {
+          "name": "payment_plans_event_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "event_vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "payment_plans_budget_item_id_idx": {
+          "name": "payment_plans_budget_item_id_idx",
+          "columns": [
+            {
+              "expression": "budget_item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "payment_plans_event_vendor_id_event_vendors_id_fk": {
+          "name": "payment_plans_event_vendor_id_event_vendors_id_fk",
+          "tableFrom": "payment_plans",
+          "columnsFrom": [
+            "event_vendor_id"
+          ],
+          "tableTo": "event_vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "payment_plans_budget_item_id_budget_items_id_fk": {
+          "name": "payment_plans_budget_item_id_budget_items_id_fk",
+          "tableFrom": "payment_plans",
+          "columnsFrom": [
+            "budget_item_id"
+          ],
+          "tableTo": "budget_items",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "payment_plans_select_event_side_or_vendor_side": {
+          "name": "payment_plans_select_event_side_or_vendor_side",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"payment_plans\".\"event_vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid()))\n          OR public.is_event_collaborator(ev.event_id, (select auth.uid()))\n          OR public.is_vendor_team_member(ev.vendor_id, (select auth.uid()))\n        )\n      )"
+        },
+        "payment_plans_insert_event_editor": {
+          "name": "payment_plans_insert_event_editor",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"payment_plans\".\"event_vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid())) OR public.is_event_collaborator(ev.event_id, (select auth.uid()), 'editor')\n        )\n      )"
+        },
+        "payment_plans_update_event_editor": {
+          "name": "payment_plans_update_event_editor",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"payment_plans\".\"event_vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid())) OR public.is_event_collaborator(ev.event_id, (select auth.uid()), 'editor')\n        )\n      )"
+        },
+        "payment_plans_delete_event_editor": {
+          "name": "payment_plans_delete_event_editor",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"payment_plans\".\"event_vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid())) OR public.is_event_collaborator(ev.event_id, (select auth.uid()), 'editor')\n        )\n      )"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.payment_reminders": {
+      "name": "payment_reminders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "payment_installment_id": {
+          "name": "payment_installment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_user_id": {
+          "name": "contact_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remind_at": {
+          "name": "remind_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "reminder_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'email'"
+        },
+        "sent": {
+          "name": "sent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payment_reminders_payment_installment_id_idx": {
+          "name": "payment_reminders_payment_installment_id_idx",
+          "columns": [
+            {
+              "expression": "payment_installment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "payment_reminders_payment_installment_id_payment_installments_id_fk": {
+          "name": "payment_reminders_payment_installment_id_payment_installments_id_fk",
+          "tableFrom": "payment_reminders",
+          "columnsFrom": [
+            "payment_installment_id"
+          ],
+          "tableTo": "payment_installments",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "payment_reminders_contact_user_id_profiles_id_fk": {
+          "name": "payment_reminders_contact_user_id_profiles_id_fk",
+          "tableFrom": "payment_reminders",
+          "columnsFrom": [
+            "contact_user_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "payment_reminders_select_event_side_or_vendor_side": {
+          "name": "payment_reminders_select_event_side_or_vendor_side",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM payment_installments pi\n        JOIN payment_plans pp ON pp.id = pi.payment_plan_id\n        JOIN event_vendors ev ON ev.id = pp.event_vendor_id\n        WHERE pi.id = \"payment_reminders\".\"payment_installment_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid()))\n          OR public.is_event_collaborator(ev.event_id, (select auth.uid()))\n          OR public.is_vendor_team_member(ev.vendor_id, (select auth.uid()))\n        )\n      )"
+        },
+        "payment_reminders_insert_self": {
+          "name": "payment_reminders_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"payment_reminders\".\"contact_user_id\" = (select auth.uid()) AND EXISTS (\n        SELECT 1 FROM payment_installments pi\n        JOIN payment_plans pp ON pp.id = pi.payment_plan_id\n        JOIN event_vendors ev ON ev.id = pp.event_vendor_id\n        WHERE pi.id = \"payment_reminders\".\"payment_installment_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid())) OR public.is_event_collaborator(ev.event_id, (select auth.uid()), 'editor')\n        )\n      )"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.profiles": {
+      "name": "profiles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_admin": {
+          "name": "is_admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "profiles_select_all_authenticated": {
+          "name": "profiles_select_all_authenticated",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "profiles_update_own": {
+          "name": "profiles_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "id = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.service_categories": {
+      "name": "service_categories",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "service_categories_name_unique": {
+          "name": "service_categories_name_unique",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "service_categories_select_all": {
+          "name": "service_categories_select_all",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.support_case_comments": {
+      "name": "support_case_comments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "case_id": {
+          "name": "case_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "support_case_comments_case_id_idx": {
+          "name": "support_case_comments_case_id_idx",
+          "columns": [
+            {
+              "expression": "case_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "support_case_comments_case_id_support_cases_id_fk": {
+          "name": "support_case_comments_case_id_support_cases_id_fk",
+          "tableFrom": "support_case_comments",
+          "columnsFrom": [
+            "case_id"
+          ],
+          "tableTo": "support_cases",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "support_case_comments_author_id_profiles_id_fk": {
+          "name": "support_case_comments_author_id_profiles_id_fk",
+          "tableFrom": "support_case_comments",
+          "columnsFrom": [
+            "author_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.support_cases": {
+      "name": "support_cases",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "support_case_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "support_case_priority",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'normal'"
+        },
+        "category": {
+          "name": "category",
+          "type": "support_case_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attachment_path": {
+          "name": "attachment_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requester_id": {
+          "name": "requester_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "related_event_id": {
+          "name": "related_event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "related_vendor_id": {
+          "name": "related_vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_admin_id": {
+          "name": "assigned_admin_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "support_cases_status_idx": {
+          "name": "support_cases_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "support_cases_requester_id_idx": {
+          "name": "support_cases_requester_id_idx",
+          "columns": [
+            {
+              "expression": "requester_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "support_cases_related_event_id_idx": {
+          "name": "support_cases_related_event_id_idx",
+          "columns": [
+            {
+              "expression": "related_event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "support_cases_related_vendor_id_idx": {
+          "name": "support_cases_related_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "related_vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "support_cases_assigned_admin_id_idx": {
+          "name": "support_cases_assigned_admin_id_idx",
+          "columns": [
+            {
+              "expression": "assigned_admin_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "support_cases_requester_id_profiles_id_fk": {
+          "name": "support_cases_requester_id_profiles_id_fk",
+          "tableFrom": "support_cases",
+          "columnsFrom": [
+            "requester_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "support_cases_related_event_id_events_id_fk": {
+          "name": "support_cases_related_event_id_events_id_fk",
+          "tableFrom": "support_cases",
+          "columnsFrom": [
+            "related_event_id"
+          ],
+          "tableTo": "events",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "support_cases_related_vendor_id_vendors_id_fk": {
+          "name": "support_cases_related_vendor_id_vendors_id_fk",
+          "tableFrom": "support_cases",
+          "columnsFrom": [
+            "related_vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "support_cases_assigned_admin_id_profiles_id_fk": {
+          "name": "support_cases_assigned_admin_id_profiles_id_fk",
+          "tableFrom": "support_cases",
+          "columnsFrom": [
+            "assigned_admin_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "support_cases_created_by_profiles_id_fk": {
+          "name": "support_cases_created_by_profiles_id_fk",
+          "tableFrom": "support_cases",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "support_cases_insert_self": {
+          "name": "support_cases_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"support_cases\".\"created_by\" = (select auth.uid()) AND \"support_cases\".\"requester_id\" = (select auth.uid())"
+        },
+        "support_cases_select_own": {
+          "name": "support_cases_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"support_cases\".\"requester_id\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.task_reminders": {
+      "name": "task_reminders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_task_id": {
+          "name": "event_task_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact_user_id": {
+          "name": "contact_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "remind_at": {
+          "name": "remind_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "reminder_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'email'"
+        },
+        "sent": {
+          "name": "sent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "task_reminders_event_task_id_idx": {
+          "name": "task_reminders_event_task_id_idx",
+          "columns": [
+            {
+              "expression": "event_task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "task_reminders_event_task_id_event_tasks_id_fk": {
+          "name": "task_reminders_event_task_id_event_tasks_id_fk",
+          "tableFrom": "task_reminders",
+          "columnsFrom": [
+            "event_task_id"
+          ],
+          "tableTo": "event_tasks",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "task_reminders_contact_user_id_profiles_id_fk": {
+          "name": "task_reminders_contact_user_id_profiles_id_fk",
+          "tableFrom": "task_reminders",
+          "columnsFrom": [
+            "contact_user_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "task_reminders_select_own": {
+          "name": "task_reminders_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"task_reminders\".\"contact_user_id\" = (select auth.uid())"
+        },
+        "task_reminders_insert_self": {
+          "name": "task_reminders_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"task_reminders\".\"contact_user_id\" = (select auth.uid()) AND EXISTS (\n        SELECT 1 FROM event_tasks et\n        WHERE et.id = \"task_reminders\".\"event_task_id\" AND (\n          public.is_event_owner(et.event_id, (select auth.uid())) OR public.is_event_collaborator(et.event_id, (select auth.uid()))\n        )\n      )"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.user_suspensions": {
+      "name": "user_suspensions",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "suspended_by": {
+          "name": "suspended_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_suspensions_user_id_profiles_id_fk": {
+          "name": "user_suspensions_user_id_profiles_id_fk",
+          "tableFrom": "user_suspensions",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "user_suspensions_suspended_by_profiles_id_fk": {
+          "name": "user_suspensions_suspended_by_profiles_id_fk",
+          "tableFrom": "user_suspensions",
+          "columnsFrom": [
+            "suspended_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendor_business_requests": {
+      "name": "vendor_business_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "requester_id": {
+          "name": "requester_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "business_name": {
+          "name": "business_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "primary_category": {
+          "name": "primary_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "needs_extra_slot": {
+          "name": "needs_extra_slot",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "needs_duplicate_category": {
+          "name": "needs_duplicate_category",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "vendor_business_request_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rejection_reason": {
+          "name": "rejection_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "used_vendor_id": {
+          "name": "used_vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendor_business_requests_requester_id_idx": {
+          "name": "vendor_business_requests_requester_id_idx",
+          "columns": [
+            {
+              "expression": "requester_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vendor_business_requests_status_idx": {
+          "name": "vendor_business_requests_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vendor_business_requests_one_pending_per_user": {
+          "name": "vendor_business_requests_one_pending_per_user",
+          "columns": [
+            {
+              "expression": "requester_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "status = 'pending'",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_business_requests_requester_id_profiles_id_fk": {
+          "name": "vendor_business_requests_requester_id_profiles_id_fk",
+          "tableFrom": "vendor_business_requests",
+          "columnsFrom": [
+            "requester_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "vendor_business_requests_reviewed_by_profiles_id_fk": {
+          "name": "vendor_business_requests_reviewed_by_profiles_id_fk",
+          "tableFrom": "vendor_business_requests",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "vendor_business_requests_used_vendor_id_vendors_id_fk": {
+          "name": "vendor_business_requests_used_vendor_id_vendors_id_fk",
+          "tableFrom": "vendor_business_requests",
+          "columnsFrom": [
+            "used_vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendor_business_requests_select_own": {
+          "name": "vendor_business_requests_select_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"vendor_business_requests\".\"requester_id\" = (select auth.uid())"
+        },
+        "vendor_business_requests_insert_own_pending": {
+          "name": "vendor_business_requests_insert_own_pending",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"vendor_business_requests\".\"requester_id\" = (select auth.uid()) AND \"vendor_business_requests\".\"status\" = 'pending'"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendor_claim_requests": {
+      "name": "vendor_claim_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "vendor_id": {
+          "name": "vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "claim_request_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rejection_reason": {
+          "name": "rejection_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendor_claim_requests_vendor_id_idx": {
+          "name": "vendor_claim_requests_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vendor_claim_requests_one_approved_per_vendor": {
+          "name": "vendor_claim_requests_one_approved_per_vendor",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "status = 'approved'",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_claim_requests_vendor_id_vendors_id_fk": {
+          "name": "vendor_claim_requests_vendor_id_vendors_id_fk",
+          "tableFrom": "vendor_claim_requests",
+          "columnsFrom": [
+            "vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "vendor_claim_requests_reviewed_by_profiles_id_fk": {
+          "name": "vendor_claim_requests_reviewed_by_profiles_id_fk",
+          "tableFrom": "vendor_claim_requests",
+          "columnsFrom": [
+            "reviewed_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "vendor_claim_requests_created_by_profiles_id_fk": {
+          "name": "vendor_claim_requests_created_by_profiles_id_fk",
+          "tableFrom": "vendor_claim_requests",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendor_claim_requests_select_own_or_team": {
+          "name": "vendor_claim_requests_select_own_or_team",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"vendor_claim_requests\".\"created_by\" = (select auth.uid()) OR public.is_vendor_team_member(\"vendor_claim_requests\".\"vendor_id\", (select auth.uid()))"
+        },
+        "vendor_claim_requests_insert_authenticated": {
+          "name": "vendor_claim_requests_insert_authenticated",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"vendor_claim_requests\".\"created_by\" = (select auth.uid())"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendor_feature_placements": {
+      "name": "vendor_feature_placements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "vendor_id": {
+          "name": "vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "feature_placement_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "starts_on": {
+          "name": "starts_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fee_amount": {
+          "name": "fee_amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requested_by": {
+          "name": "requested_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requested_spot": {
+          "name": "requested_spot",
+          "type": "feature_spot",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requested_duration": {
+          "name": "requested_duration",
+          "type": "feature_duration",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vendor_note": {
+          "name": "vendor_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendor_feature_placements_vendor_id_idx": {
+          "name": "vendor_feature_placements_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vendor_feature_placements_window_idx": {
+          "name": "vendor_feature_placements_window_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "starts_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ends_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_feature_placements_vendor_id_vendors_id_fk": {
+          "name": "vendor_feature_placements_vendor_id_vendors_id_fk",
+          "tableFrom": "vendor_feature_placements",
+          "columnsFrom": [
+            "vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "vendor_feature_placements_requested_by_profiles_id_fk": {
+          "name": "vendor_feature_placements_requested_by_profiles_id_fk",
+          "tableFrom": "vendor_feature_placements",
+          "columnsFrom": [
+            "requested_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "vendor_feature_placements_created_by_profiles_id_fk": {
+          "name": "vendor_feature_placements_created_by_profiles_id_fk",
+          "tableFrom": "vendor_feature_placements",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "vendor_feature_placements_dates_check": {
+          "name": "vendor_feature_placements_dates_check",
+          "value": "\"vendor_feature_placements\".\"ends_on\" >= \"vendor_feature_placements\".\"starts_on\""
+        },
+        "vendor_feature_placements_position_check": {
+          "name": "vendor_feature_placements_position_check",
+          "value": "\"vendor_feature_placements\".\"position\" IS NULL OR \"vendor_feature_placements\".\"position\" >= 1"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.vendor_gallery_images": {
+      "name": "vendor_gallery_images",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "vendor_id": {
+          "name": "vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_path": {
+          "name": "storage_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "caption": {
+          "name": "caption",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendor_gallery_images_vendor_id_idx": {
+          "name": "vendor_gallery_images_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_gallery_images_vendor_id_vendors_id_fk": {
+          "name": "vendor_gallery_images_vendor_id_vendors_id_fk",
+          "tableFrom": "vendor_gallery_images",
+          "columnsFrom": [
+            "vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "vendor_gallery_images_created_by_profiles_id_fk": {
+          "name": "vendor_gallery_images_created_by_profiles_id_fk",
+          "tableFrom": "vendor_gallery_images",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendor_gallery_images_select_public": {
+          "name": "vendor_gallery_images_select_public",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "vendor_gallery_images_insert_owner_or_manager_if_verified": {
+          "name": "vendor_gallery_images_insert_owner_or_manager_if_verified",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\n        public.is_vendor_team_member(\"vendor_gallery_images\".\"vendor_id\", (select auth.uid()), ARRAY['owner', 'manager'])\n        AND public.is_vendor_verified(\"vendor_gallery_images\".\"vendor_id\")\n      "
+        },
+        "vendor_gallery_images_delete_owner_or_manager": {
+          "name": "vendor_gallery_images_delete_owner_or_manager",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_vendor_team_member(\"vendor_gallery_images\".\"vendor_id\", (select auth.uid()), ARRAY['owner', 'manager'])"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendor_quotes": {
+      "name": "vendor_quotes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_vendor_id": {
+          "name": "event_vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quote_number": {
+          "name": "quote_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "valid_until": {
+          "name": "valid_until",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "vendor_quote_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "created_by_vendor": {
+          "name": "created_by_vendor",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "document_url": {
+          "name": "document_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendor_quotes_event_vendor_id_idx": {
+          "name": "vendor_quotes_event_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "event_vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vendor_quotes_one_accepted_per_event_vendor": {
+          "name": "vendor_quotes_one_accepted_per_event_vendor",
+          "columns": [
+            {
+              "expression": "event_vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "where": "\"vendor_quotes\".\"status\" = 'accepted'",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_quotes_event_vendor_id_event_vendors_id_fk": {
+          "name": "vendor_quotes_event_vendor_id_event_vendors_id_fk",
+          "tableFrom": "vendor_quotes",
+          "columnsFrom": [
+            "event_vendor_id"
+          ],
+          "tableTo": "event_vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendor_quotes_select_event_side_or_vendor_side": {
+          "name": "vendor_quotes_select_event_side_or_vendor_side",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"vendor_quotes\".\"event_vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid()))\n          OR public.is_event_collaborator(ev.event_id, (select auth.uid()))\n          OR public.is_vendor_team_member(ev.vendor_id, (select auth.uid()))\n        )\n      )"
+        },
+        "vendor_quotes_insert_vendor_manager": {
+          "name": "vendor_quotes_insert_vendor_manager",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"vendor_quotes\".\"event_vendor_id\"\n          AND public.is_vendor_team_member(ev.vendor_id, (select auth.uid()), ARRAY['owner', 'manager'])\n      )"
+        },
+        "vendor_quotes_update_event_editor_or_vendor_manager": {
+          "name": "vendor_quotes_update_event_editor_or_vendor_manager",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"vendor_quotes\".\"event_vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid()))\n          OR public.is_event_collaborator(ev.event_id, (select auth.uid()), 'editor')\n          OR public.is_vendor_team_member(ev.vendor_id, (select auth.uid()), ARRAY['owner', 'manager'])\n        )\n      )"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendor_review_replies": {
+      "name": "vendor_review_replies",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "vendor_review_id": {
+          "name": "vendor_review_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reply_text": {
+          "name": "reply_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "replied_by": {
+          "name": "replied_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "vendor_review_replies_vendor_review_id_vendor_reviews_id_fk": {
+          "name": "vendor_review_replies_vendor_review_id_vendor_reviews_id_fk",
+          "tableFrom": "vendor_review_replies",
+          "columnsFrom": [
+            "vendor_review_id"
+          ],
+          "tableTo": "vendor_reviews",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "vendor_review_replies_replied_by_profiles_id_fk": {
+          "name": "vendor_review_replies_replied_by_profiles_id_fk",
+          "tableFrom": "vendor_review_replies",
+          "columnsFrom": [
+            "replied_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "vendor_review_replies_vendor_review_id_unique": {
+          "name": "vendor_review_replies_vendor_review_id_unique",
+          "columns": [
+            "vendor_review_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {
+        "vendor_review_replies_select_public": {
+          "name": "vendor_review_replies_select_public",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "vendor_review_replies_insert_vendor_manager": {
+          "name": "vendor_review_replies_insert_vendor_manager",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"vendor_review_replies\".\"replied_by\" = (select auth.uid()) AND EXISTS (\n        SELECT 1 FROM vendor_reviews vr JOIN event_vendors ev ON ev.id = vr.event_vendor_id\n        WHERE vr.id = \"vendor_review_replies\".\"vendor_review_id\" AND public.is_vendor_team_member(ev.vendor_id, (select auth.uid()), ARRAY['owner', 'manager'])\n      )"
+        },
+        "vendor_review_replies_update_vendor_manager": {
+          "name": "vendor_review_replies_update_vendor_manager",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM vendor_reviews vr JOIN event_vendors ev ON ev.id = vr.event_vendor_id\n        WHERE vr.id = \"vendor_review_replies\".\"vendor_review_id\" AND public.is_vendor_team_member(ev.vendor_id, (select auth.uid()), ARRAY['owner', 'manager'])\n      )"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendor_reviews": {
+      "name": "vendor_reviews",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_vendor_id": {
+          "name": "event_vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vendor_id": {
+          "name": "vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reviewer_id": {
+          "name": "reviewer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rating": {
+          "name": "rating",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "review_text": {
+          "name": "review_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendor_reviews_event_vendor_id_idx": {
+          "name": "vendor_reviews_event_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "event_vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vendor_reviews_vendor_id_idx": {
+          "name": "vendor_reviews_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vendor_reviews_one_per_booking_reviewer": {
+          "name": "vendor_reviews_one_per_booking_reviewer",
+          "columns": [
+            {
+              "expression": "event_vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "reviewer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_reviews_event_vendor_id_event_vendors_id_fk": {
+          "name": "vendor_reviews_event_vendor_id_event_vendors_id_fk",
+          "tableFrom": "vendor_reviews",
+          "columnsFrom": [
+            "event_vendor_id"
+          ],
+          "tableTo": "event_vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "vendor_reviews_vendor_id_vendors_id_fk": {
+          "name": "vendor_reviews_vendor_id_vendors_id_fk",
+          "tableFrom": "vendor_reviews",
+          "columnsFrom": [
+            "vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "vendor_reviews_reviewer_id_profiles_id_fk": {
+          "name": "vendor_reviews_reviewer_id_profiles_id_fk",
+          "tableFrom": "vendor_reviews",
+          "columnsFrom": [
+            "reviewer_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendor_reviews_select_public": {
+          "name": "vendor_reviews_select_public",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "vendor_reviews_insert_self": {
+          "name": "vendor_reviews_insert_self",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"vendor_reviews\".\"reviewer_id\" = (select auth.uid()) AND EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"vendor_reviews\".\"event_vendor_id\" AND ev.vendor_id = \"vendor_reviews\".\"vendor_id\" AND ev.status = 'contracted' AND (\n          public.is_event_owner(ev.event_id, (select auth.uid())) OR public.is_event_collaborator(ev.event_id, (select auth.uid()))\n        )\n      )"
+        },
+        "vendor_reviews_update_own": {
+          "name": "vendor_reviews_update_own",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"vendor_reviews\".\"reviewer_id\" = (select auth.uid())",
+          "withCheck": "\"vendor_reviews\".\"reviewer_id\" = (select auth.uid()) AND EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.id = \"vendor_reviews\".\"event_vendor_id\" AND ev.vendor_id = \"vendor_reviews\".\"vendor_id\" AND ev.status = 'contracted' AND (\n          public.is_event_owner(ev.event_id, (select auth.uid())) OR public.is_event_collaborator(ev.event_id, (select auth.uid()))\n        )\n      )"
+        }
+      },
+      "checkConstraints": {
+        "vendor_reviews_rating_range": {
+          "name": "vendor_reviews_rating_range",
+          "value": "\"vendor_reviews\".\"rating\" >= 1 AND \"vendor_reviews\".\"rating\" <= 5"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.vendor_services": {
+      "name": "vendor_services",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "vendor_id": {
+          "name": "vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "vendor_services_vendor_id_idx": {
+          "name": "vendor_services_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vendor_services_category_id_idx": {
+          "name": "vendor_services_category_id_idx",
+          "columns": [
+            {
+              "expression": "category_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_services_vendor_id_vendors_id_fk": {
+          "name": "vendor_services_vendor_id_vendors_id_fk",
+          "tableFrom": "vendor_services",
+          "columnsFrom": [
+            "vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "vendor_services_category_id_service_categories_id_fk": {
+          "name": "vendor_services_category_id_service_categories_id_fk",
+          "tableFrom": "vendor_services",
+          "columnsFrom": [
+            "category_id"
+          ],
+          "tableTo": "service_categories",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendor_services_select_public": {
+          "name": "vendor_services_select_public",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "vendor_services_insert_owner_or_manager": {
+          "name": "vendor_services_insert_owner_or_manager",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_vendor_team_member(\"vendor_services\".\"vendor_id\", (select auth.uid()), ARRAY['owner', 'manager'])"
+        },
+        "vendor_services_update_owner_or_manager": {
+          "name": "vendor_services_update_owner_or_manager",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_vendor_team_member(\"vendor_services\".\"vendor_id\", (select auth.uid()), ARRAY['owner', 'manager'])"
+        },
+        "vendor_services_delete_owner_or_manager": {
+          "name": "vendor_services_delete_owner_or_manager",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_vendor_team_member(\"vendor_services\".\"vendor_id\", (select auth.uid()), ARRAY['owner', 'manager'])"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendor_social_links": {
+      "name": "vendor_social_links",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "vendor_id": {
+          "name": "vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendor_social_links_vendor_id_idx": {
+          "name": "vendor_social_links_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_social_links_vendor_id_vendors_id_fk": {
+          "name": "vendor_social_links_vendor_id_vendors_id_fk",
+          "tableFrom": "vendor_social_links",
+          "columnsFrom": [
+            "vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendor_social_links_select_public": {
+          "name": "vendor_social_links_select_public",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "true"
+        },
+        "vendor_social_links_insert_owner_or_manager_if_verified": {
+          "name": "vendor_social_links_insert_owner_or_manager_if_verified",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\n        public.is_vendor_team_member(\"vendor_social_links\".\"vendor_id\", (select auth.uid()), ARRAY['owner', 'manager'])\n        AND public.is_vendor_verified(\"vendor_social_links\".\"vendor_id\")\n      "
+        },
+        "vendor_social_links_delete_owner_or_manager": {
+          "name": "vendor_social_links_delete_owner_or_manager",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_vendor_team_member(\"vendor_social_links\".\"vendor_id\", (select auth.uid()), ARRAY['owner', 'manager'])"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendor_team_invites": {
+      "name": "vendor_team_invites",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "vendor_id": {
+          "name": "vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invited_email": {
+          "name": "invited_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "vendor_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'staff'"
+        },
+        "status": {
+          "name": "status",
+          "type": "invitation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'invited'"
+        },
+        "invited_by": {
+          "name": "invited_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendor_team_invites_vendor_id_idx": {
+          "name": "vendor_team_invites_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_team_invites_vendor_id_vendors_id_fk": {
+          "name": "vendor_team_invites_vendor_id_vendors_id_fk",
+          "tableFrom": "vendor_team_invites",
+          "columnsFrom": [
+            "vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "vendor_team_invites_invited_by_profiles_id_fk": {
+          "name": "vendor_team_invites_invited_by_profiles_id_fk",
+          "tableFrom": "vendor_team_invites",
+          "columnsFrom": [
+            "invited_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendor_team_invites_select_team_or_invitee": {
+          "name": "vendor_team_invites_select_team_or_invitee",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_vendor_team_member(\"vendor_team_invites\".\"vendor_id\", (select auth.uid())) OR public.invite_email_matches_current_user(\"vendor_team_invites\".\"invited_email\", (select auth.uid()))"
+        },
+        "vendor_team_invites_insert_owner": {
+          "name": "vendor_team_invites_insert_owner",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "public.is_vendor_team_member(\"vendor_team_invites\".\"vendor_id\", (select auth.uid()), ARRAY['owner'])"
+        },
+        "vendor_team_invites_update_owner_or_invitee": {
+          "name": "vendor_team_invites_update_owner_or_invitee",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_vendor_team_member(\"vendor_team_invites\".\"vendor_id\", (select auth.uid()), ARRAY['owner']) OR public.invite_email_matches_current_user(\"vendor_team_invites\".\"invited_email\", (select auth.uid()))"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendor_team_members": {
+      "name": "vendor_team_members",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "vendor_id": {
+          "name": "vendor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "vendor_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'staff'"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendor_team_members_vendor_id_idx": {
+          "name": "vendor_team_members_vendor_id_idx",
+          "columns": [
+            {
+              "expression": "vendor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "vendor_team_members_user_id_idx": {
+          "name": "vendor_team_members_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendor_team_members_vendor_id_vendors_id_fk": {
+          "name": "vendor_team_members_vendor_id_vendors_id_fk",
+          "tableFrom": "vendor_team_members",
+          "columnsFrom": [
+            "vendor_id"
+          ],
+          "tableTo": "vendors",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "vendor_team_members_user_id_profiles_id_fk": {
+          "name": "vendor_team_members_user_id_profiles_id_fk",
+          "tableFrom": "vendor_team_members",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendor_team_members_select_own_team": {
+          "name": "vendor_team_members_select_own_team",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "\"vendor_team_members\".\"user_id\" = (select auth.uid()) OR public.is_vendor_team_member(\"vendor_team_members\".\"vendor_id\", (select auth.uid()))"
+        },
+        "vendor_team_members_select_event_side": {
+          "name": "vendor_team_members_select_event_side",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "authenticated"
+          ],
+          "using": "EXISTS (\n        SELECT 1 FROM event_vendors ev WHERE ev.vendor_id = \"vendor_team_members\".\"vendor_id\" AND (\n          public.is_event_owner(ev.event_id, (select auth.uid())) OR public.is_event_collaborator(ev.event_id, (select auth.uid()))\n        )\n      )"
+        },
+        "vendor_team_members_insert_self_on_accepted_invite": {
+          "name": "vendor_team_members_insert_self_on_accepted_invite",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"vendor_team_members\".\"user_id\" = (select auth.uid()) AND EXISTS (\n        SELECT 1 FROM vendor_team_invites vti\n        WHERE vti.vendor_id = \"vendor_team_members\".\"vendor_id\"\n          AND vti.role = \"vendor_team_members\".\"role\"\n          AND vti.status = 'accepted'\n          AND public.invite_email_matches_current_user(vti.invited_email, (select auth.uid()))\n      )"
+        },
+        "vendor_team_members_update_by_owner": {
+          "name": "vendor_team_members_update_by_owner",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_vendor_team_member(\"vendor_team_members\".\"vendor_id\", (select auth.uid()), ARRAY['owner'])"
+        },
+        "vendor_team_members_delete_by_owner": {
+          "name": "vendor_team_members_delete_by_owner",
+          "as": "PERMISSIVE",
+          "for": "DELETE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "public.is_vendor_team_member(\"vendor_team_members\".\"vendor_id\", (select auth.uid()), ARRAY['owner'])"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.vendors": {
+      "name": "vendors",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "primary_category": {
+          "name": "primary_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "website": {
+          "name": "website",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "verification_status": {
+          "name": "verification_status",
+          "type": "vendor_verification_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unclaimed'"
+        },
+        "logo_path": {
+          "name": "logo_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hidden_at": {
+          "name": "hidden_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "vendors_created_by_idx": {
+          "name": "vendors_created_by_idx",
+          "columns": [
+            {
+              "expression": "created_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "vendors_created_by_profiles_id_fk": {
+          "name": "vendors_created_by_profiles_id_fk",
+          "tableFrom": "vendors",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "profiles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "vendors_select_public_or_own": {
+          "name": "vendors_select_public_or_own",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "anon",
+            "authenticated"
+          ],
+          "using": "(\"vendors\".\"verification_status\" IN ('verified', 'unclaimed', 'claim_pending') AND \"vendors\".\"hidden_at\" IS NULL) OR \"vendors\".\"created_by\" = (select auth.uid()) OR public.is_vendor_team_member(\"vendors\".\"id\", (select auth.uid()))"
+        },
+        "vendors_insert_authenticated": {
+          "name": "vendors_insert_authenticated",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "\"vendors\".\"created_by\" = (select auth.uid())"
+        },
+        "vendors_update_creator_stub_or_owner_manager": {
+          "name": "vendors_update_creator_stub_or_owner_manager",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": [
+            "authenticated"
+          ],
+          "using": "(\"vendors\".\"verification_status\" = 'unclaimed' AND \"vendors\".\"created_by\" = (select auth.uid())) OR public.is_vendor_team_member(\"vendors\".\"id\", (select auth.uid()), ARRAY['owner', 'manager'])"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {
+    "public.claim_request_status": {
+      "name": "claim_request_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "approved",
+        "rejected"
+      ]
+    },
+    "public.collaborator_permission": {
+      "name": "collaborator_permission",
+      "schema": "public",
+      "values": [
+        "editor",
+        "viewer"
+      ]
+    },
+    "public.event_status": {
+      "name": "event_status",
+      "schema": "public",
+      "values": [
+        "draft",
+        "published",
+        "cancelled"
+      ]
+    },
+    "public.event_vendor_status": {
+      "name": "event_vendor_status",
+      "schema": "public",
+      "values": [
+        "interested",
+        "shortlisted",
+        "contracted",
+        "rejected"
+      ]
+    },
+    "public.event_visibility": {
+      "name": "event_visibility",
+      "schema": "public",
+      "values": [
+        "public",
+        "private",
+        "invite_only"
+      ]
+    },
+    "public.feature_duration": {
+      "name": "feature_duration",
+      "schema": "public",
+      "values": [
+        "1_week",
+        "1_month",
+        "3_months"
+      ]
+    },
+    "public.feature_placement_status": {
+      "name": "feature_placement_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "activated",
+        "cancelled"
+      ]
+    },
+    "public.feature_spot": {
+      "name": "feature_spot",
+      "schema": "public",
+      "values": [
+        "top",
+        "rotating"
+      ]
+    },
+    "public.installment_status": {
+      "name": "installment_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "paid",
+        "late",
+        "cancelled",
+        "refunded"
+      ]
+    },
+    "public.invitation_status": {
+      "name": "invitation_status",
+      "schema": "public",
+      "values": [
+        "invited",
+        "accepted",
+        "declined"
+      ]
+    },
+    "public.payment_plan_status": {
+      "name": "payment_plan_status",
+      "schema": "public",
+      "values": [
+        "draft",
+        "active",
+        "completed",
+        "cancelled"
+      ]
+    },
+    "public.reminder_method": {
+      "name": "reminder_method",
+      "schema": "public",
+      "values": [
+        "email",
+        "sms",
+        "push"
+      ]
+    },
+    "public.rsvp_status": {
+      "name": "rsvp_status",
+      "schema": "public",
+      "values": [
+        "attending",
+        "declined",
+        "maybe",
+        "no_response"
+      ]
+    },
+    "public.support_case_category": {
+      "name": "support_case_category",
+      "schema": "public",
+      "values": [
+        "payments_billing",
+        "vendor_booking",
+        "event_setup",
+        "account_verification",
+        "app_bug",
+        "other"
+      ]
+    },
+    "public.support_case_priority": {
+      "name": "support_case_priority",
+      "schema": "public",
+      "values": [
+        "low",
+        "normal",
+        "high",
+        "urgent"
+      ]
+    },
+    "public.support_case_status": {
+      "name": "support_case_status",
+      "schema": "public",
+      "values": [
+        "open",
+        "pending",
+        "resolved",
+        "closed"
+      ]
+    },
+    "public.upcoming_window": {
+      "name": "upcoming_window",
+      "schema": "public",
+      "values": [
+        "on_day",
+        "one_day_before",
+        "one_week_before"
+      ]
+    },
+    "public.vendor_business_request_status": {
+      "name": "vendor_business_request_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "approved",
+        "rejected",
+        "used"
+      ]
+    },
+    "public.vendor_quote_status": {
+      "name": "vendor_quote_status",
+      "schema": "public",
+      "values": [
+        "draft",
+        "sent",
+        "accepted",
+        "declined",
+        "expired"
+      ]
+    },
+    "public.vendor_role": {
+      "name": "vendor_role",
+      "schema": "public",
+      "values": [
+        "owner",
+        "manager",
+        "staff"
+      ]
+    },
+    "public.vendor_verification_status": {
+      "name": "vendor_verification_status",
+      "schema": "public",
+      "values": [
+        "unclaimed",
+        "claim_pending",
+        "verified"
+      ]
+    }
+  },
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

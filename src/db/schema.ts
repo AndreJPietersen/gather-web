@@ -43,6 +43,15 @@ export const vendorVerificationStatusEnum = pgEnum("vendor_verification_status",
   "claim_pending",
   "verified",
 ]);
+// An exception request to create a business past the owner limits (see
+// vendorBusinessRequests). "used" = approved and already spent on the
+// business it was for, so one approval lets exactly one business through.
+export const vendorBusinessRequestStatusEnum = pgEnum("vendor_business_request_status", [
+  "pending",
+  "approved",
+  "rejected",
+  "used",
+]);
 export const eventVendorStatusEnum = pgEnum("event_vendor_status", [
   "interested",
   "shortlisted",
@@ -50,6 +59,8 @@ export const eventVendorStatusEnum = pgEnum("event_vendor_status", [
   "rejected",
 ]);
 export const featurePlacementStatusEnum = pgEnum("feature_placement_status", ["pending", "activated", "cancelled"]);
+export const featureSpotEnum = pgEnum("feature_spot", ["top", "rotating"]);
+export const featureDurationEnum = pgEnum("feature_duration", ["1_week", "1_month", "3_months"]);
 export const claimRequestStatusEnum = pgEnum("claim_request_status", ["pending", "approved", "rejected"]);
 export const vendorRoleEnum = pgEnum("vendor_role", ["owner", "manager", "staff"]);
 export const vendorQuoteStatusEnum = pgEnum("vendor_quote_status", [
@@ -600,6 +611,12 @@ export const vendors = pgTable(
     // the computed columns is_featured / featured_rank on vendors, defined in
     // the vendor_featured_functions migration. Vendors still cannot influence
     // it: nothing they can write touches vendor_feature_placements at all.
+    // Admin moderation: set when an admin hides a listing (spam, look-alike
+    // flooding, a suspended owner). Hidden listings drop out of every public
+    // read (see vendors_select_public_or_own) but keep their verification
+    // status, so restoring one puts it back exactly as it was. The reason is
+    // kept in admin_audit_log, not here, since vendors rows are public.
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
     createdBy: uuid("created_by").notNull().references(() => profiles.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -618,7 +635,7 @@ export const vendors = pgTable(
     pgPolicy("vendors_select_public_or_own", {
       for: "select",
       to: [anonRole, authenticatedRole],
-      using: sql`${table.verificationStatus} IN ('verified', 'unclaimed', 'claim_pending') OR ${table.createdBy} = ${authUid} OR public.is_vendor_team_member(${table.id}, ${authUid})`,
+      using: sql`(${table.verificationStatus} IN ('verified', 'unclaimed', 'claim_pending') AND ${table.hiddenAt} IS NULL) OR ${table.createdBy} = ${authUid} OR public.is_vendor_team_member(${table.id}, ${authUid})`,
     }),
     // Any authenticated user can create a vendor (self-registration, or a
     // planner's "stub" vendor) as long as they're recorded as its creator.
@@ -805,11 +822,15 @@ export const vendorGalleryImages = pgTable(
       to: [anonRole, authenticatedRole],
       using: sql`true`,
     }),
+    // Staff may add photos too (a second shooter uploading their work) but
+    // only Owner/Manager may delete — a mistake by Staff can only ever add
+    // something a Manager can remove. (The policy name predates Staff being
+    // included; kept so the migration history stays a plain edit.)
     pgPolicy("vendor_gallery_images_insert_owner_or_manager_if_verified", {
       for: "insert",
       to: authenticatedRole,
       withCheck: sql`
-        public.is_vendor_team_member(${table.vendorId}, ${authUid}, ARRAY['owner', 'manager'])
+        public.is_vendor_team_member(${table.vendorId}, ${authUid}, ARRAY['owner', 'manager', 'staff'])
         AND public.is_vendor_verified(${table.vendorId})
       `,
     }),
@@ -858,6 +879,50 @@ export const vendorClaimRequests = pgTable(
       for: "insert",
       to: authenticatedRole,
       withCheck: sql`${table.createdBy} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
+
+// A user asking an admin to let them create one more business than the
+// rules allow — past the per-user limit of owned businesses (5, see
+// src/lib/vendor-business-rules.ts), and/or a second business in a category
+// they already own one in. It records the business they were trying to
+// create; approving it lets exactly that one creation through (status goes
+// approved → used, with used_vendor_id pointing at the result). The user can
+// file and read their own; review is the admin console via the service role.
+export const vendorBusinessRequests = pgTable(
+  "vendor_business_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    requesterId: uuid("requester_id").notNull().references(() => profiles.id),
+    businessName: text("business_name").notNull(),
+    primaryCategory: text("primary_category"),
+    needsExtraSlot: boolean("needs_extra_slot").notNull().default(false),
+    needsDuplicateCategory: boolean("needs_duplicate_category").notNull().default(false),
+    reason: text("reason"),
+    status: vendorBusinessRequestStatusEnum("status").notNull().default("pending"),
+    reviewedBy: uuid("reviewed_by").references(() => profiles.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    rejectionReason: text("rejection_reason"),
+    usedVendorId: uuid("used_vendor_id").references(() => vendors.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("vendor_business_requests_requester_id_idx").on(table.requesterId),
+    index("vendor_business_requests_status_idx").on(table.status),
+    // One open request per user — a second would just be the same ask twice.
+    uniqueIndex("vendor_business_requests_one_pending_per_user")
+      .on(table.requesterId)
+      .where(sql`status = 'pending'`),
+    pgPolicy("vendor_business_requests_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${table.requesterId} = ${authUid}`,
+    }),
+    pgPolicy("vendor_business_requests_insert_own_pending", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.requesterId} = ${authUid} AND ${table.status} = 'pending'`,
     }),
   ],
 ).enableRLS();
@@ -945,25 +1010,21 @@ export const vendorTeamMembers = pgTable(
         )
       )`,
     }),
-    // Bootstrap case: a vendor's creator may insert exactly one row making
-    // themselves Owner. Without this, a brand-new vendor could never get its
-    // first team member at all — "only an existing Owner may add members"
-    // has no valid Owner yet to satisfy itself. This is the same
-    // chicken-and-egg bug the Salesforce build hit with Account creation for
-    // self-registering vendors (see docs/gather_web_architecture.md) — caught
-    // here at design time instead of by a failed live test.
-    pgPolicy("vendor_team_members_insert_self_on_vendor_creation", {
-      for: "insert",
-      to: authenticatedRole,
-      withCheck: sql`${table.userId} = ${authUid} AND ${table.role} = 'owner' AND public.is_vendor_creator(${table.vendorId}, ${authUid})`,
-    }),
-    // Steady state: an existing active Owner may add further team members
-    // directly (without going through the invite/accept flow at all).
-    pgPolicy("vendor_team_members_insert_by_existing_owner", {
-      for: "insert",
-      to: authenticatedRole,
-      withCheck: sql`public.is_vendor_team_member(${table.vendorId}, ${authUid}, ARRAY['owner'])`,
-    }),
+    // The bootstrap case (a new vendor's creator making themselves its first
+    // Owner) used to be an RLS policy here, vendor_team_members_insert_self_
+    // on_vendor_creation. It was removed when the owner limits arrived (max 5
+    // businesses, one per category — src/lib/vendor-business-rules.ts):
+    // with that policy any signed-in user could call the API directly and
+    // make themselves Owner of as many businesses as they liked, skipping
+    // those checks — and of any planner *stub* they had created, skipping
+    // the claim review too. registerVendorBusiness now checks the rules in
+    // code and inserts the first Owner row through the service role.
+    // There used to be a vendor_team_members_insert_by_existing_owner policy
+    // here letting an Owner insert *any* user straight onto their team, in
+    // any role, with no consent from that user. The app never used it (the
+    // team page only sends invites, which the invitee must accept), but it
+    // was reachable through the API — a way to plant strangers on spam
+    // businesses. Dropped alongside the admin watchlist (migration 0038).
     // Accepting an invite: the invitee inserts *themselves*, not an existing
     // Owner adding them — the previous policy can't cover this, since the
     // person accepting isn't a team member yet. Requires the matching
@@ -1116,6 +1177,10 @@ export const vendorQuotes = pgTable(
     status: vendorQuoteStatusEnum("status").notNull().default("draft"),
     createdByVendor: boolean("created_by_vendor").notNull().default(true),
     documentUrl: text("document_url"),
+    // Set when a vendor Staff member suggests a quote. Staff suggestions are
+    // saved as status 'draft', which the planner side can't see; an
+    // Owner/Manager sends it (draft → sent) or discards it (delete).
+    suggestedBy: uuid("suggested_by").references(() => profiles.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
@@ -1127,26 +1192,50 @@ export const vendorQuotes = pgTable(
     uniqueIndex("vendor_quotes_one_accepted_per_event_vendor")
       .on(table.eventVendorId)
       .where(sql`${table.status} = 'accepted'`),
+    // Planner side: every quote except drafts (a draft is the vendor's
+    // internal suggestion, not yet sent). Vendor Owner/Manager: everything.
+    // Vendor Staff: only drafts they suggested themselves — Staff don't see
+    // the business's prices otherwise.
     pgPolicy("vendor_quotes_select_event_side_or_vendor_side", {
       for: "select",
       to: authenticatedRole,
       using: sql`EXISTS (
         SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND (
-          public.is_event_owner(ev.event_id, ${authUid})
-          OR public.is_event_collaborator(ev.event_id, ${authUid})
-          OR public.is_vendor_team_member(ev.vendor_id, ${authUid})
+          ((public.is_event_owner(ev.event_id, ${authUid}) OR public.is_event_collaborator(ev.event_id, ${authUid}))
+            AND ${table.status} <> 'draft')
+          OR public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+          OR (${table.status} = 'draft' AND ${table.suggestedBy} = ${authUid}
+            AND public.is_vendor_team_member(ev.vendor_id, ${authUid}))
         )
       )`,
     }),
     // Only the vendor's own Manager+ team submits a quote — never the event
     // side. "createdByVendor" distinguishes this from a planner's own quick
     // single-figure note on event_vendors.amount, which needs no quote row.
+    // Owner/Manager send quotes directly; Staff may only suggest one — a
+    // draft carrying their own id, which a Manager then sends or discards.
     pgPolicy("vendor_quotes_insert_vendor_manager", {
       for: "insert",
       to: authenticatedRole,
       withCheck: sql`EXISTS (
-        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId}
-          AND public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND (
+          (public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+            AND ${table.status} IN ('sent', 'draft'))
+          OR (public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['staff'])
+            AND ${table.status} = 'draft' AND ${table.suggestedBy} = ${authUid})
+        )
+      )`,
+    }),
+    // Discarding a suggestion: Owner/Manager any draft, Staff their own.
+    // Sent quotes are never deleted (the planner has seen them).
+    pgPolicy("vendor_quotes_delete_draft", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`${table.status} = 'draft' AND EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND (
+          public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+          OR (${table.suggestedBy} = ${authUid} AND public.is_vendor_team_member(ev.vendor_id, ${authUid}))
+        )
       )`,
     }),
     // Event owner/editor accepts or declines; the vendor's own Manager+ can
@@ -1154,6 +1243,11 @@ export const vendorQuotes = pgTable(
     // gates whether the row can be touched at all, not which columns; the
     // Server Actions for each side only ever send the fields appropriate
     // to that action.
+    // withCheck limits *which statuses* each side may set — found in the
+    // Staff-permissions review: without it a vendor Manager could mark their
+    // own quote "accepted" (faking the planner's acceptance), and a planner
+    // could push a sent quote back to "draft". Planner side: accept/decline.
+    // Vendor Owner/Manager: send a draft (a Staff suggestion) or keep drafting.
     pgPolicy("vendor_quotes_update_event_editor_or_vendor_manager", {
       for: "update",
       to: authenticatedRole,
@@ -1162,6 +1256,14 @@ export const vendorQuotes = pgTable(
           public.is_event_owner(ev.event_id, ${authUid})
           OR public.is_event_collaborator(ev.event_id, ${authUid}, 'editor')
           OR public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+        )
+      )`,
+      withCheck: sql`EXISTS (
+        SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND (
+          ((public.is_event_owner(ev.event_id, ${authUid}) OR public.is_event_collaborator(ev.event_id, ${authUid}, 'editor'))
+            AND ${table.status} IN ('accepted', 'declined'))
+          OR (public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+            AND ${table.status} IN ('sent', 'draft'))
         )
       )`,
     }),
@@ -1196,7 +1298,7 @@ export const paymentPlans = pgTable(
         SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND (
           public.is_event_owner(ev.event_id, ${authUid})
           OR public.is_event_collaborator(ev.event_id, ${authUid})
-          OR public.is_vendor_team_member(ev.vendor_id, ${authUid})
+          OR public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
         )
       )`,
     }),
@@ -1403,7 +1505,7 @@ export const paymentInstallments = pgTable(
         WHERE pp.id = ${table.paymentPlanId} AND (
           public.is_event_owner(ev.event_id, ${authUid})
           OR public.is_event_collaborator(ev.event_id, ${authUid})
-          OR public.is_vendor_team_member(ev.vendor_id, ${authUid})
+          OR public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
         )
       )`,
     }),
@@ -1469,7 +1571,7 @@ export const paymentReminders = pgTable(
         WHERE pi.id = ${table.paymentInstallmentId} AND (
           public.is_event_owner(ev.event_id, ${authUid})
           OR public.is_event_collaborator(ev.event_id, ${authUid})
-          OR public.is_vendor_team_member(ev.vendor_id, ${authUid})
+          OR public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
         )
       )`,
     }),
@@ -1816,6 +1918,46 @@ export const adminAuditLog = pgTable(
   ],
 ).enableRLS();
 
+// A suspended account. The actual lock-out is a Supabase Auth ban (set by
+// the suspend action through the auth admin API), which stops sign-in and
+// token refresh; this row is Gather's own record of it — who, why, when —
+// and what the admin console reads to show the state. Admin-only: RLS on,
+// no policies (the reason must not be public, unlike profiles columns).
+export const userSuspensions = pgTable(
+  "user_suspensions",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    reason: text("reason"),
+    suspendedBy: uuid("suspended_by")
+      .notNull()
+      .references(() => profiles.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  () => [],
+).enableRLS();
+
+// "Looked at this, it's fine" for a watchlist entry. subject_key identifies
+// the entry (a user id, or the normalised phone/website for shared-contact
+// entries). The entry stays hidden only while its count is no higher than
+// when it was dismissed — if the pattern grows, it comes back on its own.
+export const adminWatchlistDismissals = pgTable(
+  "admin_watchlist_dismissals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    signal: text("signal").notNull(),
+    subjectKey: text("subject_key").notNull(),
+    hitsAtDismissal: integer("hits_at_dismissal").notNull(),
+    note: text("note"),
+    dismissedBy: uuid("dismissed_by")
+      .notNull()
+      .references(() => profiles.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("admin_watchlist_dismissals_subject_unique").on(table.signal, table.subjectKey)],
+).enableRLS();
+
 // Paid featured placement for a vendor — replaces the old vendors.is_featured
 // boolean, which had no dates, no lifecycle, and no ordering. One row per
 // purchase: status is the admin-managed part (pending until the vendor has
@@ -1845,6 +1987,14 @@ export const vendorFeaturePlacements = pgTable(
     position: integer("position"),
     feeAmount: numeric("fee_amount", { precision: 12, scale: 2 }),
     note: text("note"),
+    // Set only when a vendor asked for this placement themselves (from their
+    // dashboard or the marketplace): who asked, which kind of spot, how long,
+    // and their own note. Kept apart from the admin-only note above, which
+    // vendors never see.
+    requestedBy: uuid("requested_by").references(() => profiles.id),
+    requestedSpot: featureSpotEnum("requested_spot"),
+    requestedDuration: featureDurationEnum("requested_duration"),
+    vendorNote: text("vendor_note"),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => profiles.id),
@@ -1858,3 +2008,237 @@ export const vendorFeaturePlacements = pgTable(
     check("vendor_feature_placements_position_check", sql`${table.position} IS NULL OR ${table.position} >= 1`),
   ],
 ).enableRLS();
+
+// The featured-placement price list, shown on the /featured pricing page and
+// next to each option on a vendor's request screen, edited from
+// /admin/featured/pricing. One row per spot type and duration (6 rows,
+// seeded with no amount, which reads as "price on request" until an admin
+// fills them in). Public read, since prices are meant to be seen; writes only
+// through the admin console's service role.
+export const featurePrices = pgTable(
+  "feature_prices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    spot: featureSpotEnum("spot").notNull(),
+    duration: featureDurationEnum("duration").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("feature_prices_spot_duration_idx").on(table.spot, table.duration),
+    check("feature_prices_amount_check", sql`${table.amount} IS NULL OR ${table.amount} >= 0`),
+    pgPolicy("feature_prices_select_public", {
+      for: "select",
+      to: [anonRole, authenticatedRole],
+      using: sql`true`,
+    }),
+  ],
+).enableRLS();
+
+// App-wide switches an admin can flip, as a single row (the id is always
+// true, enforced by the check). featured_enabled turns the whole featured-
+// vendor programme on or off: when off, public.is_featured() and
+// featured_rank() answer false/null for everyone, so badges, the Featured row
+// and the ranking boost all disappear together, and vendors cannot request a
+// spot — placements themselves are kept, ready for when it's switched back on.
+// Useful early on, when there are too few vendors for "featured" to mean
+// anything. Public read (nothing secret in it); writes via the admin console.
+export const appSettings = pgTable(
+  "app_settings",
+  {
+    id: boolean("id").primaryKey().default(true),
+    featuredEnabled: boolean("featured_enabled").notNull().default(true),
+    // The sign-up kill switch (/admin/settings). Off = nobody can create an
+    // account: the register page says so, and — because Supabase's signup
+    // endpoint can be called directly, skipping our page — a trigger on
+    // auth.users refuses the insert too (migration 0044). Existing users can
+    // still log in.
+    registrationEnabled: boolean("registration_enabled").notNull().default(true),
+    // How many vendor listings (stubs or own businesses) one person may
+    // create per rolling 24 hours. Enforced by a trigger on vendors
+    // (migration 0046) so a direct API insert can't skip it; editable at
+    // /admin/settings.
+    listingDailyLimit: integer("listing_daily_limit").notNull().default(10),
+    // Owner limit: businesses one person may own before needing an approved
+    // business request (src/lib/vendor-business-rules.ts).
+    maxOwnedBusinesses: integer("max_owned_businesses").notNull().default(5),
+    // Watchlist thresholds (src/lib/admin/watchlist.ts → admin_watchlist()).
+    watchListingDays: integer("watch_listing_days").notNull().default(7),
+    watchListingMin: integer("watch_listing_min").notNull().default(5),
+    watchTeamMin: integer("watch_team_min").notNull().default(8),
+    watchClaimDays: integer("watch_claim_days").notNull().default(30),
+    watchClaimMin: integer("watch_claim_min").notNull().default(3),
+    watchInviteDays: integer("watch_invite_days").notNull().default(7),
+    watchInviteMin: integer("watch_invite_min").notNull().default(15),
+    watchContactMin: integer("watch_contact_min").notNull().default(3),
+    // Most recipients one admin email send may go to (/admin/emails/send) —
+    // a guard against accidentally blasting the whole user base.
+    maxEmailRecipients: integer("max_email_recipients").notNull().default(500),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    check("app_settings_singleton_check", sql`${table.id}`),
+    check("app_settings_listing_daily_limit_check", sql`${table.listingDailyLimit} >= 1`),
+    check(
+      "app_settings_limits_positive_check",
+      sql`${table.maxOwnedBusinesses} >= 1 AND ${table.watchListingDays} >= 1 AND ${table.watchListingMin} >= 1 AND ${table.watchTeamMin} >= 1 AND ${table.watchClaimDays} >= 1 AND ${table.watchClaimMin} >= 1 AND ${table.watchInviteDays} >= 1 AND ${table.watchInviteMin} >= 1 AND ${table.watchContactMin} >= 2`,
+    ),
+    pgPolicy("app_settings_select_public", {
+      for: "select",
+      to: [anonRole, authenticatedRole],
+      using: sql`true`,
+    }),
+  ],
+).enableRLS();
+
+// Anti-abuse: per-person hourly write limits, one row per table (editable at
+// /admin/settings). A trigger on each listed table (migration 0050) counts
+// the signed-in user's recent inserts in user_write_log and refuses the
+// insert once max_per_hour is reached. Service-role writes are exempt. This
+// is what stops someone flooding the database through the public API.
+export const writeRateLimits = pgTable(
+  "write_rate_limits",
+  {
+    tableName: text("table_name").primaryKey(),
+    label: text("label").notNull(),
+    maxPerHour: integer("max_per_hour").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [check("write_rate_limits_positive_check", sql`${table.maxPerHour} >= 1`)],
+).enableRLS();
+
+// One row per insert made by a signed-in user into a rate-limited table —
+// what the limit trigger counts. Rows older than a day are pruned by the
+// trigger itself. Written only by that SECURITY DEFINER trigger; no access
+// for anyone else.
+export const userWriteLog = pgTable(
+  "user_write_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    tableName: text("table_name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("user_write_log_lookup_idx").on(table.userId, table.tableName, table.createdAt)],
+).enableRLS();
+
+// Private notes a vendor's team keeps on one booking ("arrive 2pm, gate code
+// 4411") — one note per booking, editable by any active team member, Staff
+// included. Never visible to the planner side: the policies below only have
+// a vendor-team branch. Deliberately a separate table rather than
+// event_vendors.notes, which sits on a row the planner side also reads.
+export const vendorBookingNotes = pgTable(
+  "vendor_booking_notes",
+  {
+    eventVendorId: uuid("event_vendor_id")
+      .primaryKey()
+      .references(() => eventVendors.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    updatedBy: uuid("updated_by")
+      .notNull()
+      .references(() => profiles.id),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    pgPolicy("vendor_booking_notes_select_team", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`EXISTS (SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND public.is_vendor_team_member(ev.vendor_id, ${authUid}))`,
+    }),
+    pgPolicy("vendor_booking_notes_insert_team", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${table.updatedBy} = ${authUid} AND EXISTS (SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND public.is_vendor_team_member(ev.vendor_id, ${authUid}))`,
+    }),
+    pgPolicy("vendor_booking_notes_update_team", {
+      for: "update",
+      to: authenticatedRole,
+      using: sql`EXISTS (SELECT 1 FROM event_vendors ev WHERE ev.id = ${table.eventVendorId} AND public.is_vendor_team_member(ev.vendor_id, ${authUid}))`,
+      withCheck: sql`${table.updatedBy} = ${authUid}`,
+    }),
+  ],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
+// Admin email (docs/gather_web_admin_architecture.md, /admin/emails)
+// ---------------------------------------------------------------------------
+// All four tables are admin-only: RLS on, no policies, client privileges
+// revoked (migration 0056) — reached only through the service role behind
+// requireAdmin(), plus the reminder sender (service role, system templates).
+
+export const emailTemplateKindEnum = pgEnum("email_template_kind", ["system", "custom"]);
+export const emailCategoryEnum = pgEnum("email_category", ["transactional", "announcement"]);
+export const emailRecipientStatusEnum = pgEnum("email_recipient_status", ["sent", "failed", "skipped_unsubscribed"]);
+
+// A Gather-branded email template. Content is either "blocks" (heading,
+// simple-text body, optional button — rendered into the fixed layout by
+// src/lib/email/layout.ts) or raw inner HTML when use_raw_html is on.
+// System templates (kind = 'system', a fixed key) are the automatic
+// reminders: editable wording, but never deleted or re-keyed.
+export const emailTemplates = pgTable(
+  "email_templates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    key: text("key"),
+    name: text("name").notNull(),
+    kind: emailTemplateKindEnum("kind").notNull().default("custom"),
+    category: emailCategoryEnum("category").notNull().default("transactional"),
+    subject: text("subject").notNull(),
+    preheader: text("preheader"),
+    heading: text("heading"),
+    body: text("body"),
+    buttonLabel: text("button_label"),
+    buttonUrl: text("button_url"),
+    useRawHtml: boolean("use_raw_html").notNull().default(false),
+    rawHtml: text("raw_html"),
+    updatedBy: uuid("updated_by").references(() => profiles.id),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("email_templates_key_unique").on(table.key)],
+).enableRLS();
+
+// One admin send (a single email, a group or a broadcast).
+export const adminEmails = pgTable(
+  "admin_emails",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    templateId: uuid("template_id").references(() => emailTemplates.id, { onDelete: "set null" }),
+    subject: text("subject").notNull(),
+    category: emailCategoryEnum("category").notNull(),
+    audience: jsonb("audience").notNull(),
+    recipientCount: integer("recipient_count").notNull().default(0),
+    sentCount: integer("sent_count").notNull().default(0),
+    failedCount: integer("failed_count").notNull().default(0),
+    skippedCount: integer("skipped_count").notNull().default(0),
+    sentBy: uuid("sent_by")
+      .notNull()
+      .references(() => profiles.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("admin_emails_created_at_idx").on(table.createdAt)],
+).enableRLS();
+
+export const adminEmailRecipients = pgTable(
+  "admin_email_recipients",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    emailId: uuid("email_id")
+      .notNull()
+      .references(() => adminEmails.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    userId: uuid("user_id").references(() => profiles.id, { onDelete: "set null" }),
+    status: emailRecipientStatusEnum("status").notNull(),
+    error: text("error"),
+  },
+  (table) => [index("admin_email_recipients_email_id_idx").on(table.emailId)],
+).enableRLS();
+
+// Addresses that have opted out of announcements (via the signed link in an
+// email, or the toggle on Profile). Keyed by address so it also covers
+// people who aren't Gather users. Transactional mail ignores it.
+export const emailSuppressions = pgTable("email_suppressions", {
+  email: text("email").primaryKey(),
+  reason: text("reason").notNull().default("unsubscribed"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}).enableRLS();

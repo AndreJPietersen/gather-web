@@ -40,6 +40,20 @@ export default async function VendorPaymentsPage({ params }: PageProps<"/vendor/
   if (!access.isTeamMember) {
     notFound();
   }
+  // Payment amounts are Owner/Manager only (the database hides them from
+  // Staff too — payment_plans/installments select policies).
+  if (access.role === "staff") {
+    return (
+      <main className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-4 px-6 py-10">
+        <PageHeader title="Payments" />
+        <Card>
+          <p className="text-sm font-semibold text-text-muted">
+            Payment details are only visible to this business&apos;s Owner and Managers.
+          </p>
+        </Card>
+      </main>
+    );
+  }
 
   const { data: bookings } = await supabase
     .from("event_vendors")

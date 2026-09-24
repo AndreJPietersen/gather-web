@@ -10,9 +10,11 @@ const initialState: SaveNotificationPreferencesState = {};
 
 export function NotificationPreferencesForm({
   emailReminders,
+  announcements,
   upcomingWindow,
 }: {
   emailReminders: boolean;
+  announcements: boolean;
   upcomingWindow: "on_day" | "one_day_before" | "one_week_before";
 }) {
   const [state, formAction, pending] = useActionState(saveNotificationPreferences, initialState);
@@ -34,6 +36,10 @@ export function NotificationPreferencesForm({
       <label className="flex items-center gap-2 text-sm font-semibold text-text">
         <input type="checkbox" name="emailReminders" defaultChecked={emailReminders} />
         Email reminders (tasks &amp; payments)
+      </label>
+      <label className="flex items-center gap-2 text-sm font-semibold text-text">
+        <input key={String(announcements)} type="checkbox" name="announcements" defaultChecked={announcements} />
+        Gather news &amp; announcements
       </label>
       <label className="flex items-center gap-2 text-sm font-semibold text-text-muted opacity-60">
         <input type="checkbox" disabled />

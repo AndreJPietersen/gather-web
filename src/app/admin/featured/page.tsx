@@ -12,7 +12,9 @@ import {
   type PlacementState,
   type PlacementStatus,
 } from "@/lib/feature-placements";
-import { setPlacementStatus } from "./actions";
+import { durationLabel, spotLabel, type FeatureDuration, type FeatureSpot } from "@/lib/feature-pricing";
+import { setFeaturedEnabled, setPlacementStatus } from "./actions";
+import { getFeaturedEnabled } from "@/lib/app-settings";
 
 interface PlacementRow {
   id: string;
@@ -23,6 +25,10 @@ interface PlacementRow {
   position: number | null;
   fee_amount: string | null;
   note: string | null;
+  requested_by: string | null;
+  requested_spot: FeatureSpot | null;
+  requested_duration: FeatureDuration | null;
+  vendor_note: string | null;
   vendors: { name: string } | null;
 }
 
@@ -36,10 +42,11 @@ export default async function AdminFeaturedPage() {
   await requireAdmin();
   const service = createServiceClient();
   const today = sastDayKey();
+  const featuredEnabled = await getFeaturedEnabled();
 
   const { data } = await service
     .from("vendor_feature_placements")
-    .select("id, vendor_id, status, starts_on, ends_on, position, fee_amount, note, vendors(name)")
+    .select("id, vendor_id, status, starts_on, ends_on, position, fee_amount, note, requested_by, requested_spot, requested_duration, vendor_note, vendors(name)")
     .order("starts_on", { ascending: false })
     .returns<PlacementRow[]>();
 
@@ -52,14 +59,40 @@ export default async function AdminFeaturedPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-semibold text-ink">Featured vendors</h1>
-        <LinkButton href="/admin/featured/new" variant="accent">
-          New placement
-        </LinkButton>
+        <div className="flex gap-2">
+          <LinkButton href="/admin/featured/pricing" variant="secondary">
+            Pricing
+          </LinkButton>
+          <LinkButton href="/admin/featured/new" variant="accent">
+            New placement
+          </LinkButton>
+        </div>
       </div>
+
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-xl">
+          <h2 className="font-display text-lg font-semibold text-ink">
+            Featured vendors are {featuredEnabled ? "on" : "off"}
+          </h2>
+          <p className="text-xs font-semibold text-text-muted">
+            {featuredEnabled
+              ? "Featured badges, the Featured row and the ranking boost show across the site, and vendor owners can request a spot."
+              : "Nothing is shown as featured anywhere and vendors can't request a spot. Placements below are kept, ready for when you switch it back on."}
+          </p>
+        </div>
+        <form action={setFeaturedEnabled}>
+          <input type="hidden" name="enabled" value={(!featuredEnabled).toString()} />
+          <Button type="submit" variant={featuredEnabled ? "secondary" : "accent"}>
+            {featuredEnabled ? "Turn off" : "Turn on"}
+          </Button>
+        </form>
+      </Card>
 
       <Card className="flex flex-col gap-2">
         <h2 className="font-display text-lg font-semibold text-ink">Order on the site right now</h2>
-        {live.length === 0 ? (
+        {!featuredEnabled ? (
+          <p className="text-sm font-semibold text-text-muted">Nothing — featured vendors are switched off.</p>
+        ) : live.length === 0 ? (
           <p className="text-sm font-semibold text-text-muted">No vendor is featured today.</p>
         ) : (
           <ol className="flex flex-col gap-1 text-sm font-bold text-text">
@@ -106,6 +139,15 @@ export default async function AdminFeaturedPage() {
                     {formatEventDate(p.starts_on)} – {formatEventDate(p.ends_on)}
                     {p.fee_amount !== null && ` · ${formatZAR(p.fee_amount)}`}
                   </p>
+                  {p.requested_by && (
+                    <p className="text-xs font-bold text-primary">
+                      Requested by the vendor
+                      {p.requested_spot ? ` · ${spotLabel(p.requested_spot)}` : ""}
+                      {p.requested_duration ? ` · ${durationLabel(p.requested_duration)}` : ""}
+                      {p.requested_spot === "top" && p.position === null ? " — set a position before activating" : ""}
+                    </p>
+                  )}
+                  {p.vendor_note && <p className="text-xs font-semibold text-text-muted">Vendor: {p.vendor_note}</p>}
                   {p.note && <p className="text-xs font-semibold text-text-muted">{p.note}</p>}
                 </div>
                 <div className="flex gap-2">

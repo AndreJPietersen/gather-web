@@ -4,6 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { setSuppressed } from "@/lib/email/suppressions";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -78,6 +79,12 @@ export async function saveNotificationPreferences(
     push_reminders: false,
     upcoming_window: parsedWindow.success ? parsedWindow.data : "one_week_before",
   });
+
+  // Gather news & announcements: the same opt-out list the unsubscribe
+  // link writes to (email_suppressions), keyed by the account's own email.
+  if (user.email) {
+    await setSuppressed(user.email, formData.get("announcements") !== "on");
+  }
 
   // Home and My Events both read this preference server-side on every
   // render, so they need to be told this changed too, not just Profile —

@@ -7,6 +7,7 @@ import { sastInputToIso } from "@/lib/utils";
 import type { EventFormState } from "../event-form";
 import { resolveEventType } from "../resolve-event-type";
 import { validateEventDates } from "../validate-event-dates";
+import { friendlyWriteError } from "@/lib/db-errors";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(150),
@@ -102,7 +103,7 @@ export async function createEvent(_prevState: EventFormState, formData: FormData
     .single();
 
   if (error || !event) {
-    return { error: "Something went wrong creating your event. Please try again." };
+    return { error: friendlyWriteError(error, "Something went wrong creating your event. Please try again.") };
   }
 
   redirect(`/events/${event.id}`);

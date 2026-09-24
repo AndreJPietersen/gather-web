@@ -29,6 +29,10 @@ export default async function AdminVendorsPage({ searchParams }: PageProps<"/adm
   if (query) {
     vendorsQuery = vendorsQuery.ilike("name", `%${query}%`);
   }
+  const { count: businessRequestCount } = await service
+    .from("vendor_business_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
   const { data: vendors } = await vendorsQuery
     .order("created_at", { ascending: false })
     .limit(100)
@@ -38,9 +42,14 @@ export default async function AdminVendorsPage({ searchParams }: PageProps<"/adm
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-semibold text-ink">Vendors</h1>
-        <LinkButton href="/admin/vendors/claims" variant="secondary">
-          Claim Queue
-        </LinkButton>
+        <div className="flex gap-2">
+          <LinkButton href="/admin/vendors/requests" variant="secondary">
+            Business Requests{(businessRequestCount ?? 0) > 0 ? ` (${businessRequestCount})` : ""}
+          </LinkButton>
+          <LinkButton href="/admin/vendors/claims" variant="secondary">
+            Claim Queue
+          </LinkButton>
+        </div>
       </div>
 
       <form method="get" className="flex gap-2">

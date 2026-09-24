@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getListingDailyLimit } from "@/lib/app-settings";
+import { friendlyWriteError } from "@/lib/db-errors";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(150),
@@ -43,6 +45,21 @@ export async function createStubVendor(_prevState: CreateStubState, formData: Fo
 
   const { name, primaryCategory, phone, website } = parsed.data;
 
+  // Anti-flooding cap (app_settings.listing_daily_limit). The vendors
+  // trigger is the real enforcement; this early check is for a clear
+  // message. The creator can always read their own rows, hidden included.
+  const limit = await getListingDailyLimit();
+  const { count: recent } = await supabase
+    .from("vendors")
+    .select("id", { count: "exact", head: true })
+    .eq("created_by", user.id)
+    .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+  if ((recent ?? 0) >= limit) {
+    return {
+      error: `You've added ${limit} listings in the last 24 hours, which is the daily limit. Try again tomorrow, or report an issue from your Profile if you need more.`,
+    };
+  }
+
   const { data: vendor, error } = await supabase
     .from("vendors")
     .insert({
@@ -57,7 +74,7 @@ export async function createStubVendor(_prevState: CreateStubState, formData: Fo
     .single();
 
   if (error || !vendor) {
-    return { error: "Something went wrong creating that listing. Please try again." };
+    return { error: friendlyWriteError(error, "Something went wrong creating that listing. Please try again.") };
   }
 
   redirect(`/vendors/${vendor.id}`);

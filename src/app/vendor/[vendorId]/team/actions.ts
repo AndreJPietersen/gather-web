@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { friendlyWriteError } from "@/lib/db-errors";
 
 const inviteSchema = z.object({
   vendorId: z.string().uuid(),
@@ -53,7 +54,7 @@ export async function inviteTeamMember(
   });
 
   if (error) {
-    return { error: "Something went wrong sending that invite. Please try again." };
+    return { error: friendlyWriteError(error, "Something went wrong sending that invite. Please try again.") };
   }
 
   return { success: true };

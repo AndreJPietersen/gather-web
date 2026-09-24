@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { rankVendors } from "@/lib/vendor-ranking";
 import { getVendorRatingSummaries } from "@/lib/vendor-reviews";
+import { getSessionContext } from "@/lib/session";
+import { getVendorFeatureStatus } from "@/lib/vendor-feature-status";
+import { getFeaturedEnabled } from "@/lib/app-settings";
 
 interface VendorRow {
   id: string;
@@ -83,6 +86,29 @@ export default async function VendorsPage({ searchParams }: PageProps<"/vendors"
   );
 
   const featured = ranked.filter((v) => v.is_featured);
+
+  // "Your spot here": shown at the end of the Featured row only to someone
+  // who owns a vendor that is not featured and has nothing pending or
+  // booked — planners never see it, so the marketplace stays a browsing page
+  // for them. Personas come from the user's own team memberships, so the
+  // ownership check is already done before the (service-role) status read.
+  let spotVendor: { vendorId: string; vendorName: string } | null = null;
+  const session = await getSessionContext();
+  if (session.status === "authenticated" && (await getFeaturedEnabled())) {
+    for (const persona of session.personas) {
+      if (persona.type !== "vendor" || persona.role !== "owner") continue;
+      const { data: own } = await supabase
+        .from("vendors")
+        .select("is_featured")
+        .eq("id", persona.vendorId)
+        .maybeSingle<{ is_featured: boolean }>();
+      if (own?.is_featured) continue;
+      const status = await getVendorFeatureStatus(persona.vendorId);
+      if (status.pending || status.current) continue;
+      spotVendor = { vendorId: persona.vendorId, vendorName: persona.vendorName };
+      break;
+    }
+  }
   const rest = ranked.filter((v) => !v.is_featured);
 
   return (
@@ -133,7 +159,7 @@ export default async function VendorsPage({ searchParams }: PageProps<"/vendors"
         </div>
       )}
 
-      {featured.length > 0 && (
+      {(featured.length > 0 || spotVendor) && (
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-1.5">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--color-secondary)" stroke="var(--color-secondary)" strokeWidth="1.5" strokeLinejoin="round">
@@ -184,6 +210,16 @@ export default async function VendorsPage({ searchParams }: PageProps<"/vendors"
                 </div>
               </LinkCard>
             ))}
+            {spotVendor && (
+              <Link
+                href={`/vendor/${spotVendor.vendorId}/featured`}
+                className="flex w-[210px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-[24px] border-2 border-dashed border-primary bg-primary-soft p-4 text-center text-primary"
+              >
+                <span className="text-2xl leading-none">★</span>
+                <span className="text-sm font-extrabold">Your spot here</span>
+                <span className="text-[11px] font-bold">Request to feature {spotVendor.vendorName}</span>
+              </Link>
+            )}
           </div>
         </div>
       )}

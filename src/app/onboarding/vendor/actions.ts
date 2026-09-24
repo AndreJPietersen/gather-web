@@ -4,10 +4,14 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { getOpenBusinessRequests, getOwnedBusinesses } from "@/lib/owned-businesses";
+import { getMaxOwnedBusinesses } from "@/lib/app-settings";
+import { checkBusinessRules, findUsableApproval, type BusinessRuleCheck } from "@/lib/vendor-business-rules";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Business name is too short").max(150),
-  primaryCategory: z.string().trim().max(100).optional().or(z.literal("")),
+  primaryCategory: z.string().trim().min(1, "Choose a category").max(100),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   website: z.string().trim().max(300).optional().or(z.literal("")),
@@ -15,16 +19,20 @@ const schema = z.object({
 
 export interface VendorOnboardingState {
   error?: string;
+  // Set when the business breaks an owner rule (limit or duplicate category)
+  // and no approved request covers it — the form then offers to ask an admin.
+  blocked?: BusinessRuleCheck & { name: string; primaryCategory: string; hasPendingRequest: boolean };
 }
 
-// The vendor self-registration → Owner path — the single most consequential
-// thing the Salesforce build never resolved (it was genuinely unknown
-// whether a Customer Community User could create an Account at all). Here
-// it's two inserts under RLS as the real signed-in user, not the service
-// role: vendors_insert_authenticated requires created_by = auth.uid(), and
-// vendor_team_members_insert_self_on_vendor_creation requires the caller be
-// that same vendor's creator inserting themselves as Owner. Already proven
-// at the API level in the Phase 0 verification; this is the real UI path.
+// Creating a business the user will Own. The vendor row is inserted as the
+// real signed-in user (vendors_insert_authenticated pins created_by to
+// them); the Owner membership row goes through the service role, because
+// that's now the only way to become a new business's first Owner — the old
+// self-insert RLS policy was dropped so the owner rules below can't be
+// skipped by calling the API directly (see the note in schema.ts).
+//
+// The rules: at most N owned businesses (admin-set, default 5), and no two in the same category,
+// unless an admin has approved an exception request covering this one.
 export async function registerVendorBusiness(
   _prevState: VendorOnboardingState,
   formData: FormData,
@@ -52,11 +60,41 @@ export async function registerVendorBusiness(
 
   const { name, primaryCategory, description, phone, website } = parsed.data;
 
+  const [owned, openRequests, maxOwned] = await Promise.all([
+    getOwnedBusinesses(user.id),
+    getOpenBusinessRequests(user.id),
+    getMaxOwnedBusinesses(),
+  ]);
+  const check = checkBusinessRules(owned, primaryCategory, maxOwned);
+  let approvalId: string | null = null;
+  if (check.overLimit || check.duplicateCategory) {
+    const approvals = openRequests
+      .filter((r) => r.status === "approved")
+      .map((r) => ({
+        id: r.id,
+        primaryCategory: r.primary_category,
+        needsExtraSlot: r.needs_extra_slot,
+        needsDuplicateCategory: r.needs_duplicate_category,
+      }));
+    const approval = findUsableApproval(approvals, check, primaryCategory);
+    if (!approval) {
+      return {
+        blocked: {
+          ...check,
+          name,
+          primaryCategory,
+          hasPendingRequest: openRequests.some((r) => r.status === "pending"),
+        },
+      };
+    }
+    approvalId = approval.id;
+  }
+
   const { data: vendor, error: vendorError } = await supabase
     .from("vendors")
     .insert({
       name,
-      primary_category: primaryCategory || null,
+      primary_category: primaryCategory,
       description: description || null,
       phone: phone || null,
       website: website || null,
@@ -66,10 +104,15 @@ export async function registerVendorBusiness(
     .single();
 
   if (vendorError || !vendor) {
+    // Raised by the enforce_listing_daily_limit trigger (migration 0046).
+    if (vendorError?.message.includes("Daily listing limit")) {
+      return { error: "You've created the maximum number of listings for today. Please try again tomorrow." };
+    }
     return { error: "Something went wrong creating your business. Please try again." };
   }
 
-  const { error: memberError } = await supabase.from("vendor_team_members").insert({
+  const service = createServiceClient();
+  const { error: memberError } = await service.from("vendor_team_members").insert({
     vendor_id: vendor.id,
     user_id: user.id,
     role: "owner",
@@ -77,6 +120,14 @@ export async function registerVendorBusiness(
 
   if (memberError) {
     return { error: "Your business was created, but we couldn't set you up as its owner. Please contact support." };
+  }
+
+  if (approvalId) {
+    await service
+      .from("vendor_business_requests")
+      .update({ status: "used", used_vendor_id: vendor.id })
+      .eq("id", approvalId)
+      .eq("status", "approved");
   }
 
   // This insert doesn't mutate a cookie, so it doesn't get Next's automatic
@@ -87,4 +138,68 @@ export async function registerVendorBusiness(
   // testing the actual redirect target, not assumed from the docs alone.
   revalidatePath("/", "layout");
   redirect(`/vendor/${vendor.id}/dashboard`);
+}
+
+const requestSchema = z.object({
+  name: z.string().trim().min(2).max(150),
+  primaryCategory: z.string().trim().min(1).max(100),
+  reason: z.string().trim().min(10, "Tell us a little about why (at least a sentence).").max(1000),
+});
+
+export interface BusinessRequestState {
+  error?: string;
+}
+
+// Asks an admin to allow one business the rules would otherwise block. Which
+// rules it needs lifting is worked out again here from the database, not
+// taken from the form, so the request always says what's really needed.
+export async function requestBusinessException(
+  _prevState: BusinessRequestState,
+  formData: FormData,
+): Promise<BusinessRequestState> {
+  const parsed = requestSchema.safeParse({
+    name: formData.get("name"),
+    primaryCategory: formData.get("primaryCategory"),
+    reason: formData.get("reason"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check your request." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const check = checkBusinessRules(
+    await getOwnedBusinesses(user.id),
+    parsed.data.primaryCategory,
+    await getMaxOwnedBusinesses(),
+  );
+  if (!check.overLimit && !check.duplicateCategory) {
+    return { error: "You don't need approval for this one — go back and create it." };
+  }
+
+  const { error } = await supabase.from("vendor_business_requests").insert({
+    requester_id: user.id,
+    business_name: parsed.data.name,
+    primary_category: parsed.data.primaryCategory,
+    needs_extra_slot: check.overLimit,
+    needs_duplicate_category: check.duplicateCategory,
+    reason: parsed.data.reason,
+  });
+  if (error) {
+    // 23505 = the one-pending-request-per-user unique index.
+    return {
+      error:
+        error.code === "23505"
+          ? "You already have a request waiting for review."
+          : "Something went wrong sending your request. Please try again.",
+    };
+  }
+
+  revalidatePath("/onboarding/vendor");
+  revalidatePath("/admin/vendors/requests");
+  redirect("/onboarding/vendor?requested=1");
 }

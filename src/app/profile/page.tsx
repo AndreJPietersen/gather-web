@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, LinkCard } from "@/components/ui/card";
 import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import { PatternSwitcher } from "@/components/theme/pattern-switcher";
 import { PersonaSwitcher } from "@/components/nav/persona-switcher";
 import { getSessionContext } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { vendorInitials } from "@/lib/vendor-gradient";
+import { getOpenBusinessRequests, getOwnedBusinesses, type BusinessRequestRow, type OwnedBusinessRow } from "@/lib/owned-businesses";
+import { getMaxOwnedBusinesses } from "@/lib/app-settings";
 import { signOut, respondToEventInvite, respondToVendorInvite } from "./actions";
 import { NotificationPreferencesForm } from "./notification-preferences-form";
+import { isSuppressed } from "@/lib/email/suppressions";
 
 interface PendingInvite {
   id: string;
@@ -31,6 +34,9 @@ interface PendingVendorInvite {
 export default async function ProfilePage() {
   const session = await getSessionContext();
 
+  let owned: OwnedBusinessRow[] = [];
+  let maxOwned = 5;
+  let businessRequests: BusinessRequestRow[] = [];
   let pendingInvites: PendingInvite[] = [];
   let pendingVendorInvites: PendingVendorInvite[] = [];
   if (session.status === "authenticated") {
@@ -42,6 +48,11 @@ export default async function ProfilePage() {
       .eq("status", "invited")
       .returns<PendingInvite[]>();
     pendingInvites = data ?? [];
+    [owned, businessRequests, maxOwned] = await Promise.all([
+      getOwnedBusinesses(session.userId),
+      getOpenBusinessRequests(session.userId),
+      getMaxOwnedBusinesses(),
+    ]);
 
     // vendor_team_invites' SELECT policy is an OR of two branches: "I'm
     // already an active team member of this vendor" (so I can see who else
@@ -85,6 +96,8 @@ export default async function ProfilePage() {
   // (email on, sms/push off, one-week lookahead) rather than treating "no
   // row" as an error.
   let emailReminders = true;
+  // Announcements are on unless this address is on the opt-out list.
+  const announcements = email ? !(await isSuppressed(email)) : true;
   let upcomingWindow: "on_day" | "one_day_before" | "one_week_before" = "one_week_before";
   if (session.status === "authenticated") {
     const supabase = await createClient();
@@ -166,12 +179,45 @@ export default async function ProfilePage() {
         </div>
       )}
 
-      {session.status === "authenticated" && session.personas.length > 1 && (
+      {/* Shown to everyone signed in, not only multi-persona accounts —
+          before this, a planner-only account had no way at all to find
+          vendor registration again after sign-up, and an owner of one
+          business had no visible route to a second. */}
+      {session.status === "authenticated" && (
         <div>
-          <h2 className="font-display text-lg font-semibold text-ink">Switch Persona</h2>
-          <Card className="mt-3">
-            <PersonaSwitcher />
-          </Card>
+          <h2 className="font-display text-lg font-semibold text-ink">{session.personas.length > 1 ? "Switch Persona" : "Your Businesses"}</h2>
+          <div className="mt-3 flex flex-col gap-2">
+            {session.personas.length > 1 && (
+              <Card>
+                <PersonaSwitcher />
+              </Card>
+            )}
+            <LinkCard href="/onboarding/vendor" className="flex items-center justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-ink">+ Add a business</span>
+                <span className="block text-xs font-semibold text-text-muted">
+                  {owned.length === 0
+                    ? "Offer your services to planners on Gather."
+                    : `You own ${owned.length} of ${maxOwned}${owned.length >= maxOwned ? " — more needs approval" : ""}.`}
+                </span>
+              </span>
+              <span aria-hidden className="text-lg font-extrabold text-text-muted">
+                ›
+              </span>
+            </LinkCard>
+            {businessRequests.map((r) => (
+              <Card key={r.id} className="flex items-center justify-between gap-2">
+                <p className="min-w-0 truncate text-xs font-bold text-text">
+                  {r.business_name}: {r.status === "pending" ? "waiting for approval" : "approved — ready to create"}
+                </p>
+                {r.status === "approved" && (
+                  <Link href="/onboarding/vendor" className="shrink-0 text-xs font-extrabold text-primary">
+                    Create it
+                  </Link>
+                )}
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
@@ -179,7 +225,7 @@ export default async function ProfilePage() {
         <div>
           <h2 className="font-display text-lg font-semibold text-ink">Notifications & Reminders</h2>
           <Card className="mt-3 flex flex-col gap-3">
-            <NotificationPreferencesForm emailReminders={emailReminders} upcomingWindow={upcomingWindow} />
+            <NotificationPreferencesForm emailReminders={emailReminders} announcements={announcements} upcomingWindow={upcomingWindow} />
           </Card>
         </div>
       )}

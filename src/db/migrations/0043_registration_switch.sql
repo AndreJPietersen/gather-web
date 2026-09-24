@@ -1,0 +1,1 @@
+ALTER TABLE "app_settings" ADD COLUMN "registration_enabled" boolean DEFAULT true NOT NULL;

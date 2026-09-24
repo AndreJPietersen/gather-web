@@ -2,9 +2,22 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail, emailSiteUrl } from "@/lib/email";
-import { formatZAR } from "@/lib/utils";
+import { formatEventDate, formatZAR } from "@/lib/utils";
 import { getUpcomingWindow, upcomingCutoffDate, isInstallmentOverdue, isDateOverdue } from "@/lib/upcoming";
 import { getMyEventIds } from "@/lib/my-events";
+import { renderEmail } from "@/lib/email/layout";
+import { getSystemTemplateContent } from "@/lib/email/templates";
+import { firstNameOf, REMINDER_FOOTER } from "@/lib/email/fields";
+
+// Reminder emails are the admin-editable system templates
+// (/admin/emails — payment_due_soon, payment_overdue, task_due_soon,
+// task_overdue) rendered into the shared Gather layout. Every merged value
+// is HTML-escaped by renderEmail; the previous inline HTML interpolated
+// event, vendor and task names raw.
+async function displayNameFor(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<string | null> {
+  const { data } = await supabase.from("profiles").select("display_name").eq("id", userId).maybeSingle();
+  return data?.display_name ?? null;
+}
 
 interface DueInstallment {
   id: string;
@@ -85,6 +98,7 @@ export async function checkAndSendPaymentReminders(): Promise<void> {
     .returns<{ payment_installment_id: string }[]>();
   const remindedIds = new Set((alreadyReminded ?? []).map((r) => r.payment_installment_id));
 
+  const firstName = firstNameOf(await displayNameFor(supabase, user.id));
   for (const installment of qualifying) {
     if (remindedIds.has(installment.id)) continue;
 
@@ -97,16 +111,21 @@ export async function checkAndSendPaymentReminders(): Promise<void> {
       ? `${emailSiteUrl()}/events/${eventId}/payments?vendor=${installment.payment_plans?.event_vendor_id}`
       : emailSiteUrl();
 
-    const { ok } = await sendEmail({
-      to: user.email,
-      subject: overdue ? `Overdue: ${formatZAR(installment.amount)} to ${vendorName}` : `Payment due soon: ${formatZAR(installment.amount)} to ${vendorName}`,
-      html: `
-        <p>${overdue ? "A payment is overdue" : "A payment is coming up"} for <strong>${eventName}</strong>.</p>
-        <p><strong>${vendorName}</strong> — ${formatZAR(installment.amount)}, ${overdue ? "was due" : "due"} ${installment.due_date}.</p>
-        <p><a href="${paymentsUrl}">View this payment on Gather</a></p>
-        <p style="color:#888;font-size:12px;">You're getting this because email payment reminders are on in your Gather notification settings.</p>
-      `,
-    });
+    const template = await getSystemTemplateContent(overdue ? "payment_overdue" : "payment_due_soon");
+    const email = renderEmail(
+      template,
+      {
+        first_name: firstName,
+        email: user.email,
+        amount: formatZAR(installment.amount),
+        vendor_name: vendorName,
+        event_name: eventName,
+        due_date: formatEventDate(installment.due_date),
+        link: paymentsUrl,
+      },
+      { siteUrl: emailSiteUrl(), footerNote: REMINDER_FOOTER },
+    );
+    const { ok } = await sendEmail({ to: user.email, ...email });
 
     // Recorded either way, `sent` reflecting what actually happened — a
     // delivery failure shouldn't mean retrying (and re-emailing) every
@@ -167,6 +186,7 @@ export async function checkAndSendTaskReminders(): Promise<void> {
     .returns<{ event_task_id: string }[]>();
   const remindedIds = new Set((alreadyReminded ?? []).map((r) => r.event_task_id));
 
+  const firstName = firstNameOf(await displayNameFor(supabase, user.id));
   for (const task of qualifying) {
     if (remindedIds.has(task.id)) continue;
 
@@ -174,16 +194,13 @@ export async function checkAndSendTaskReminders(): Promise<void> {
     const overdue = isDateOverdue(task.due_date);
     const tasksUrl = `${emailSiteUrl()}/events/${task.event_id}/tasks`;
 
-    const { ok } = await sendEmail({
-      to: user.email,
-      subject: overdue ? `Overdue: ${task.title}` : `Task due soon: ${task.title}`,
-      html: `
-        <p>${overdue ? "A task is overdue" : "A task is coming up"} for <strong>${eventName}</strong>.</p>
-        <p><strong>${task.title}</strong> — ${overdue ? "was due" : "due"} ${task.due_date}.</p>
-        <p><a href="${tasksUrl}">View this task on Gather</a></p>
-        <p style="color:#888;font-size:12px;">You're getting this because email reminders are on in your Gather notification settings.</p>
-      `,
-    });
+    const template = await getSystemTemplateContent(overdue ? "task_overdue" : "task_due_soon");
+    const email = renderEmail(
+      template,
+      { first_name: firstName, email: user.email, task_title: task.title, event_name: eventName, due_date: formatEventDate(task.due_date), link: tasksUrl },
+      { siteUrl: emailSiteUrl(), footerNote: REMINDER_FOOTER },
+    );
+    const { ok } = await sendEmail({ to: user.email, ...email });
 
     await supabase.from("task_reminders").insert({
       event_task_id: task.id,

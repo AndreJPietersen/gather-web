@@ -150,3 +150,26 @@ function revalidatePlacementSurfaces() {
   revalidatePath("/vendors");
   revalidatePath("/");
 }
+
+// The global featured-vendor switch. Turning it off hides every featured
+// badge, the Featured row and the ranking boost at once (the database's
+// is_featured() checks it) and stops vendors requesting spots; placements
+// are kept untouched for when it's switched back on.
+export async function setFeaturedEnabled(formData: FormData): Promise<void> {
+  const { userId } = await requireAdmin();
+  const enabled = formData.get("enabled") === "true";
+  const service = createServiceClient();
+  const { error } = await service
+    .from("app_settings")
+    .upsert({ id: true, featured_enabled: enabled, updated_at: new Date().toISOString() }, { onConflict: "id" });
+  if (error) return;
+
+  await logAdminAction({
+    adminId: userId,
+    action: enabled ? "featured.enabled" : "featured.disabled",
+    targetTable: "app_settings",
+  });
+  revalidatePlacementSurfaces();
+  revalidatePath("/featured");
+  revalidatePath("/admin/settings");
+}

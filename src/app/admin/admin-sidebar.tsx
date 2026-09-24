@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Store, CalendarDays, LifeBuoy, ListTree, Tags, Star } from "lucide-react";
+import { LayoutDashboard, Users, Store, CalendarDays, LifeBuoy, ListTree, Tags, Star, ShieldAlert, Settings, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -14,6 +14,9 @@ const NAV_ITEMS = [
   { label: "Event Types", href: "/admin/event-types", icon: ListTree },
   { label: "Service Categories", href: "/admin/service-categories", icon: Tags },
   { label: "Cases", href: "/admin/cases", icon: LifeBuoy },
+  { label: "Emails", href: "/admin/emails", icon: Mail },
+  { label: "Watchlist", href: "/admin/watchlist", icon: ShieldAlert },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 // A left sidebar, not the consumer app's bottom tab bar — this console is

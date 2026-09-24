@@ -1,0 +1,2 @@
+ALTER TABLE "app_settings" ADD COLUMN "listing_daily_limit" integer DEFAULT 10 NOT NULL;--> statement-breakpoint
+ALTER TABLE "app_settings" ADD CONSTRAINT "app_settings_listing_daily_limit_check" CHECK ("app_settings"."listing_daily_limit" >= 1);

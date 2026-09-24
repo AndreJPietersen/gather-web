@@ -14,6 +14,8 @@ import {
   type PlacementStatus,
 } from "@/lib/feature-placements";
 import { markVendorVerified } from "./actions";
+import { Input } from "@/components/ui/input";
+import { hideVendorsAction, removeTeamMemberAction, restoreVendorAction } from "../../moderation/actions";
 
 interface VendorDetail {
   id: string;
@@ -23,6 +25,7 @@ interface VendorDetail {
   phone: string | null;
   website: string | null;
   is_featured: boolean;
+  hidden_at: string | null;
   created_at: string;
 }
 
@@ -64,7 +67,7 @@ export default async function AdminVendorDetailPage({ params }: PageProps<"/admi
 
   const { data: vendor } = await service
     .from("vendors")
-    .select("id, name, primary_category, verification_status, phone, website, is_featured, created_at")
+    .select("id, name, primary_category, verification_status, phone, website, is_featured, hidden_at, created_at")
     .eq("id", id)
     .maybeSingle<VendorDetail>();
 
@@ -116,6 +119,9 @@ export default async function AdminVendorDetailPage({ params }: PageProps<"/admi
           <span className="rounded-pill bg-secondary-soft px-2 py-0.5 text-[10px] font-extrabold uppercase text-ink">
             {vendor.verification_status.replace("_", " ")}
           </span>
+          {vendor.hidden_at && (
+            <span className="rounded-pill bg-primary px-2 py-0.5 text-[10px] font-extrabold uppercase text-white">Hidden</span>
+          )}
         </div>
         <p className="text-sm font-semibold text-text-muted">
           {vendor.primary_category ?? "No category"} · {vendor.phone ?? "No phone"}
@@ -132,9 +138,37 @@ export default async function AdminVendorDetailPage({ params }: PageProps<"/admi
           </form>
         )}
         <LinkButton href={`/admin/featured/new?vendorId=${vendor.id}`} variant="secondary">
-          ☆ Feature this vendor
+          ☆ Add featured placement
+        </LinkButton>
+        <LinkButton href={`/admin/emails/send?vendorId=${vendor.id}`} variant="secondary">
+          Email the team
         </LinkButton>
       </div>
+
+      <Card className="flex flex-col gap-2">
+        {vendor.hidden_at ? (
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm font-semibold text-text-muted">
+              Hidden since {new Date(vendor.hidden_at).toLocaleDateString("en-ZA")} — planners can&apos;t see it anywhere,
+              including events that already booked it. Its team still can.
+            </p>
+            <form action={restoreVendorAction}>
+              <input type="hidden" name="vendorId" value={vendor.id} />
+              <Button type="submit" variant="secondary">
+                Restore listing
+              </Button>
+            </form>
+          </div>
+        ) : (
+          <form action={hideVendorsAction} className="flex items-center gap-2">
+            <input type="hidden" name="vendorIds" value={vendor.id} />
+            <Input name="reason" placeholder="Reason for hiding (optional, audit log only)" className="flex-1" />
+            <Button type="submit" variant="secondary">
+              Hide listing
+            </Button>
+          </form>
+        )}
+      </Card>
 
       <div>
         <h2 className="font-display text-lg font-semibold text-ink">
@@ -187,14 +221,21 @@ export default async function AdminVendorDetailPage({ params }: PageProps<"/admi
         <div className="mt-3 flex flex-col gap-2">
           {team && team.length > 0 ? (
             team.map((m) => (
-              <LinkCard
-                key={m.id}
-                href={m.profiles ? `/admin/planners/${m.profiles.id}` : "/admin/planners"}
-                className="flex items-center justify-between"
-              >
-                <p className="text-sm font-bold text-text">{m.profiles?.display_name ?? "Unknown"}</p>
-                <p className="text-xs font-semibold text-text-muted">{m.role}</p>
-              </LinkCard>
+              <div key={m.id} className="flex items-center gap-2">
+                <LinkCard
+                  href={m.profiles ? `/admin/planners/${m.profiles.id}` : "/admin/planners"}
+                  className="flex flex-1 items-center justify-between"
+                >
+                  <p className="text-sm font-bold text-text">{m.profiles?.display_name ?? "Unknown"}</p>
+                  <p className="text-xs font-semibold text-text-muted">{m.role}</p>
+                </LinkCard>
+                <form action={removeTeamMemberAction}>
+                  <input type="hidden" name="memberId" value={m.id} />
+                  <Button type="submit" variant="secondary">
+                    Remove
+                  </Button>
+                </form>
+              </div>
             ))
           ) : (
             <Card>

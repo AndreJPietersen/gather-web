@@ -23,11 +23,25 @@ export async function signIn(_prevState: SignInState, formData: FormData): Promi
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    // A Supabase Auth ban is how an admin suspension locks someone out
+    // (src/lib/admin/moderation.ts) — say so plainly instead of the raw
+    // "User is banned".
+    if (error.code === "user_banned") {
+      return { error: "This account has been suspended. If you think that's a mistake, email support." };
+    }
     return { error: error.message };
   }
 
-  redirect("/");
+  // Everyone has the Planner persona; any active vendor team membership adds
+  // another, and then the first screen should ask which one they're here as.
+  const { count } = await supabase
+    .from("vendor_team_members")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", data.user.id)
+    .eq("is_active", true);
+
+  redirect((count ?? 0) > 0 ? "/choose-persona" : "/");
 }
