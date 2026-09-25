@@ -1,33 +1,35 @@
 import type { Metadata, Viewport } from "next";
-import { Fredoka, Nunito, Dancing_Script } from "next/font/google";
+import localFont from "next/font/local";
 import { AppShell } from "@/components/app-shell";
 import { getSessionContext } from "@/lib/session";
 import "./globals.css";
 
-// next/font self-hosts these automatically at build time — the prototype's
-// `@import url('fonts.googleapis.com/...')` doesn't need porting at all,
-// unlike the LWR/Salesforce build where that required a manual static
-// resource + Head Markup workaround (see docs/gather_web_architecture.md).
-const fredoka = Fredoka({
+// Fonts are bundled in ./fonts (latin subset) and loaded with next/font/local,
+// so the build never downloads anything — next/font/google fetched them from
+// Google at build time and failed on GitHub's CI runners. Still self-hosted
+// and preloaded by Next. See ./fonts/README.md.
+const fredoka = localFont({
   variable: "--font-display",
-  weight: ["500", "600", "700"],
-  subsets: ["latin"],
+  src: [{ path: "./fonts/Fredoka-latin.woff2", weight: "500 700", style: "normal" }],
+  display: "swap",
 });
 
-const nunito = Nunito({
+const nunito = localFont({
   variable: "--font-body",
-  weight: ["400", "600", "700", "800"],
-  style: ["normal", "italic"],
-  subsets: ["latin"],
+  src: [
+    { path: "./fonts/Nunito-latin.woff2", weight: "400 800", style: "normal" },
+    { path: "./fonts/Nunito-Italic-latin.woff2", weight: "400 800", style: "italic" },
+  ],
+  display: "swap",
 });
 
 // The cursive "Gather" wordmark only — see GatherWordmark
 // (src/components/brand/gather-wordmark.tsx). Loaded separately since it is
 // used nowhere else in the app.
-const dancingScript = Dancing_Script({
+const dancingScript = localFont({
   variable: "--font-script",
-  weight: ["700"],
-  subsets: ["latin"],
+  src: [{ path: "./fonts/DancingScript-Bold-latin.woff2", weight: "700", style: "normal" }],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
