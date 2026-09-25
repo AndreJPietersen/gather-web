@@ -63,7 +63,7 @@ export default async function AdminEventTypesPage() {
         <h1 className="font-display text-2xl font-semibold text-ink">Event Types</h1>
         <p className="text-sm font-semibold text-text-muted">
           Shown as a dropdown when a planner creates or edits an event. Open a type to manage which service
-          categories are relevant to it — that's what powers Suggested Vendors.
+          categories are relevant to it — that&apos;s what powers Suggested Vendors.
         </p>
       </div>
 
@@ -95,7 +95,7 @@ export default async function AdminEventTypesPage() {
 
       <div className="flex flex-col gap-2">
         <div>
-          <h2 className="font-display text-lg font-semibold text-ink">"Other" Free Text</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">&quot;Other&quot; Free Text</h2>
           <p className="text-sm font-semibold text-text-muted">
             What planners typed when nothing in the list fit, grouped by exact match. Promoting one creates it as a
             real type above and re-points every matching event at it.
@@ -120,7 +120,7 @@ export default async function AdminEventTypesPage() {
           ))
         ) : (
           <Card>
-            <p className="text-sm font-semibold text-text-muted">No "Other" entries yet.</p>
+            <p className="text-sm font-semibold text-text-muted">No &quot;Other&quot; entries yet.</p>
           </Card>
         )}
       </div>
