@@ -13,6 +13,7 @@ const SUITES: { name: string; file: string }[] = [
   { name: "security: database audit", file: "security-db-audit.mjs" },
   { name: "security: stranger can't edit anything", file: "security-stranger-sweep.mjs" },
   { name: "security: API exploit attempts", file: "security-exploits.mjs" },
+  { name: "feature: native-app API (/api/v1)", file: "api-v1.mjs" },
   { name: "feature: account deletion (database)", file: "account-deletion.mjs" },
   { name: "feature: unused-file cleanup", file: "storage-cleanup.mjs" },
   { name: "feature: launch readiness (legal, reset, delete)", file: "launch-readiness.mjs" },

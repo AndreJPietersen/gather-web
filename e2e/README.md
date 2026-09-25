@@ -72,3 +72,4 @@ stack), `npm run db:start`, then `npm run db:migrate && npm run db:seed:referenc
 - `account-deletion.mjs` — the `delete_account` database function: what is erased, what is kept as "Deleted user", and that a signed-in user can't call it.
 - `launch-readiness.mjs` — privacy/terms/robots/sitemap/404, the password-reset flow through the real email in Mailpit (checks the Gather layout), the bad-link guard, and deleting an account from the Profile page.
 - `storage-cleanup.mjs` — the unused-file cleanup (old orphan removed for real, referenced/new files kept, cron route locked).
+- `api-v1.mjs` — the native apps' API (`docs/gather_api_v1.md`): every endpoint with no token, a bad token, a stranger's, the owner's; suspended and deleted accounts' tokens.
