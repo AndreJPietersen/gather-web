@@ -1,18 +1,9 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
+// Lints the repo-level files (the e2e suites and Playwright config). Each
+// app and package has its own eslint config and lints itself.
+export default defineConfig([
   ...nextTs,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-  ]),
+  globalIgnores(["apps/**", "node_modules/**", "e2e/.output/**"]),
 ]);
-
-export default eslintConfig;

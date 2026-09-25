@@ -28,7 +28,12 @@ try {
       and exists (select 1 from information_schema.columns k where k.table_schema='public' and k.table_name=t.table_name and k.column_name='id')
     order by 1`;
   for (const { table_name: t, col } of tables) {
-    const rows = await sql.unsafe(`select id${col ? `, "${col}" as v` : ""} from public."${t}" limit 50`);
+    // The stranger owns nothing except their own profile row, which they may
+    // of course edit — exclude it, or the sweep reports a false hole whenever
+    // that row happens to fall inside the first 50 (the query needs a stable
+    // order for the same reason).
+    const notMine = t === "profiles" ? `where id <> '${STRANGER}'` : "";
+    const rows = await sql.unsafe(`select id${col ? `, "${col}" as v` : ""} from public."${t}" ${notMine} order by id limit 50`);
     // Rows the stranger has no relationship with (they own nothing yet).
     if (rows.length === 0) { lines.push(`  -        ${t}: no rows to test`); continue; }
     if (!col) { lines.push(`  locked   ${t}: no editable columns for signed-in users at all`); continue; }

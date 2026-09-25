@@ -16,10 +16,11 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 // Screenshot prefix used by the scripts (a directory path ending in a slash).
 export const S = OUTPUT_DIR.replace(/\\/g, "/") + "/";
 
-// .env.local supplies the Supabase URL and keys for the local stack. In CI
-// the same names come from real environment variables.
+// apps/web/.env.local supplies the Supabase URL and keys for the local stack
+// (the same file the web app reads). In CI the same names come from real
+// environment variables.
 function loadEnv() {
-  const file = path.join(REPO_ROOT, ".env.local");
+  const file = path.join(REPO_ROOT, "apps", "web", ".env.local");
   const fromFile = fs.existsSync(file)
     ? Object.fromEntries(
         fs

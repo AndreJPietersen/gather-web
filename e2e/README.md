@@ -9,6 +9,7 @@ from the unit tests (`npm test`).
 Prerequisites (local):
 - the local Supabase stack: `npm run db:start`
 - the dev server: `npm run dev`
+- `apps/web/.env.local` filled in (the suites read the same Supabase URL and keys as the app)
 - Playwright's browser, once: `npx playwright install chromium`
 - the seeded local test accounts:
   - `vendortest@gather.dev` (owner of "Dr Dre DJ")

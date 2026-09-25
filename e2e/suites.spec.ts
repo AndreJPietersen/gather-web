@@ -39,7 +39,9 @@ for (const suite of SUITES) {
   test(suite.name, async ({}, testInfo) => {
     const { code, output } = await runScript(suite.file);
     await testInfo.attach("output", { body: output, contentType: "text/plain" });
-    const failures = output.split("\n").filter((l) => l.startsWith("FAIL") || l.includes("SCRIPT CRASHED"));
+    // Surface the useful lines in the assertion message (the full output is
+    // attached too): failed checks, crashes, and the sweep's HOLE lines.
+    const failures = output.split("\n").filter((l) => l.startsWith("FAIL") || l.includes("SCRIPT CRASHED") || l.includes("HOLE"));
     expect(code, `exit code ${code}\n${failures.join("\n") || output.slice(-1500)}`).toBe(0);
   });
 }

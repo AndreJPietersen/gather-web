@@ -2,6 +2,36 @@ This is Gather's web frontend, a [Next.js](https://nextjs.org) project bootstrap
 
 If you're new to this stack, `teachAndre/` (gitignored, not part of the shipped project) has plain-language write-ups of every tool/concept as it's introduced, aimed at someone who knows Salesforce well but not this stack.
 
+## Repository layout
+
+This is an npm-workspaces monorepo (Turborepo runs the tasks). **Run every command from the repo root.**
+
+```
+gather/                     (repo root — run every command from here)
+├─ apps/
+│  └─ web/                  @gather/web    the Next.js website (Vercel)   — src/, public/, next.config.ts, .env.local
+│  └─ mobile/               (added in epic L6: the Expo iOS + Android app)
+├─ packages/
+│  ├─ db/                   @gather/db     Drizzle schema (all tables, RLS, grants) + generated SQL migrations
+│  ├─ shared/               @gather/shared framework-free TypeScript used by web AND native: business rules,
+│  │                                       formatting, vendor ranking, email rendering, FAQ / static content
+│  └─ tokens/               @gather/tokens the three colour themes as data (oklch + hex), radii, fonts
+├─ supabase/                local Supabase config + the hand-written SQL migrations (storage buckets, helper functions)
+├─ e2e/                     Playwright end-to-end + security suites (npm run e2e)
+├─ docs/                    the authoritative project docs
+└─ turbo.json               Turborepo task pipeline (typecheck, lint, test, build)
+```
+
+Import shared code as `@gather/shared/<module>` (e.g. `@gather/shared/utils`, `@gather/shared/email/layout`), the schema as `@gather/db/schema`, and themes from `@gather/tokens`. The web app's own `@/…` alias still means `apps/web/src/…`.
+
+| Command | What it does |
+|---|---|
+| `npm run dev` / `dev:mobile` | the website (`dev:mobile` binds to your LAN for a phone) |
+| `npm run typecheck` · `lint` · `test` · `build` | the same checks CI runs, across every workspace (cached by Turborepo) |
+| `npm run db:start` / `db:stop` | the local Supabase stack |
+| `npm run db:generate` / `db:migrate` | Drizzle migrations (in `packages/db`) |
+| `npm run e2e` / `e2e:security` | the end-to-end and security suites (`e2e/README.md`) |
+
 ## One-time local setup (Docker + Supabase)
 
 This project uses the [Supabase CLI](https://supabase.com/docs/guides/local-development) to run a full local Postgres + Auth + Storage stack in Docker, mirroring production. Docker Desktop requires WSL2 and Administrator privileges to install, so do this part yourself in an **elevated PowerShell** (right-click PowerShell/Terminal -> Run as administrator):
@@ -20,7 +50,7 @@ Then launch Docker Desktop once from the Start menu and let it finish its first-
 npm run db:start   # supabase start -- pulls images the first time, then boots local Postgres/Auth/Storage
 ```
 
-`supabase start` prints a local API URL, anon key, service role key, and DB connection string — copy those into `.env.local` (copy `.env.example` to `.env.local` first). Stop the stack later with `npm run db:stop`.
+`supabase start` prints a local API URL, anon key, service role key, and DB connection string — copy those into `apps/web/.env.local` (copy `apps/web/.env.example` to `apps/web/.env.local` first). Stop the stack later with `npm run db:stop`.
 
 ## Getting Started
 
@@ -42,7 +72,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 Run `npm run dev:mobile` instead (binds to all network interfaces), find your PC's local IP (`ipconfig`, look under your Wi-Fi adapter), then visit `http://<that-ip>:3000` from a phone on the same Wi-Fi. If that's blocked (cellular data, a locked-down network, or a flow needing real HTTPS) use a tunnel like Cloudflare Tunnel or ngrok to get a public `https://` URL to your local server instead.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the home page in `apps/web/src/app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

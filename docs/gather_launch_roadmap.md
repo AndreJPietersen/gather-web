@@ -6,26 +6,18 @@
 
 ## ▶ Where to pick up (updated 2026-09-25)
 
-**State:** `main` and `develop` are both at `b629b2f` on GitHub. The local stack is fully migrated (0000–0056). Nothing is live; go-live waits for Andre (L11).
-
-**L0 is done in the working tree but NOT committed.** The work is on the branch `chore/l0-baseline` (created off `develop`):
-- the ten test suites, now proper Playwright tests: `npm run e2e` (all 10 pass), with a shared harness that fails on any check (`e2e/`, `playwright.config.ts`, `e2e/README.md`)
-- `.github/workflows/ci.yml`: typecheck, lint, unit tests and build on every PR and on pushes to `main`/`develop`. The same steps pass locally with the CI placeholder environment.
-- `.gitattributes` (line endings) and `.gitignore` (`/e2e/.output`)
-- lint now has **0 errors** (the old `admin/event-types` quotes, plus two inline-edit forms that called `setState` inside an effect; both forms are now covered by the smoke suite)
-- Vitest excludes `e2e/`
-- this roadmap
+**State:** L0 is merged into `develop`. **L1 (monorepo) is finished on the branch `chore/l1-monorepo`** — four commits (A: `apps/web`, B: `packages/db`, C: `packages/shared`, D: tokens + Turborepo + docs), verified, but **not yet merged**. `main`/`develop` are protected: changes go by pull request and need the `checks` job green.
 
 **Next, in order:**
-1. **Commit L0** on `chore/l0-baseline` (Andre to OK), push it, and open a PR into `develop` so the CI workflow runs on GitHub for the first time. Watch that first run: it hasn't executed on GitHub yet, only locally.
-2. **Andre, in GitHub → Settings → Branches:** protect `main` (require a PR and the "checks" job to pass) and ideally `develop` too. `gh` isn't installed, so this can't be done from here.
-3. **Then L1** (monorepo restructure). It moves every file, so do it right after this merge, while nothing else is in flight.
+1. **Merge L1**: push the branch, open a pull request into `develop`, wait for CI, merge. (Andre.) After merging, everyone runs `npm install` once, and moves any local `.env.local` to `apps/web/.env.local` if it's still at the root.
+2. **L2 — Environments** (QA + production Supabase, Vercel with root `apps/web`, the migration pipeline, the seed script that also unlocks running the e2e suites in CI). Needs Andre for accounts and the decisions listed below.
+3. In parallel where possible: **L3** launch readiness (account deletion, privacy/terms, POPIA), **L4** API for the native apps, **L13** location.
+
+**Still waiting on Andre:** the 8 decisions in "Decisions still needed from Andre" below. L2 needs at least the domain, the Supabase region and the developer-account choice.
 
 **Known gaps**
-- The e2e suites aren't in CI yet: they need a seeded database (test accounts, "Dr Dre DJ", categories, event types). Writing that seed script is part of L2 ("QA seed data"); once it exists, add an e2e job to `ci.yml`.
-- `npm audit`: **0 vulnerabilities in production dependencies**. 6 moderate ones exist in dev tooling only (vitest / esbuild / drizzle-kit chains), already present before Playwright was added; fixing them needs major-version upgrades, so revisit at a quiet moment.
-
-**Still waiting on Andre:** the 8 decisions in "Decisions still needed from Andre" below. None block L1.
+- The e2e suites aren't in CI yet: they need a seeded database (test accounts, "Dr Dre DJ", categories, event types) — part of L2.
+- `npm audit`: 0 vulnerabilities in production dependencies; 6 moderate in dev tooling only (vitest / esbuild / drizzle-kit chains), present before L0.
 
 ## Context
 
@@ -82,21 +74,16 @@ Before anything moves, lock in what works.
 - [x] **Bring the end-to-end test suites into the repo** (2026-09-25). `e2e/scripts/*.mjs` run as Playwright tests via `npm run e2e` (`e2e/suites.spec.ts`, `playwright.config.ts`), with a shared harness that fails on any check. `@playwright/test` is a dev dependency. Running them in CI needs seeded test data (see L2).
   *Original note:* *Copied into `e2e/scripts/` on 2026-09-24 and verified running from there; still to convert to `@playwright/test` and wire into CI.* The exploit suite, the stranger "who can edit" sweep, and the feature suites (business rules, moderation, staff, email) currently live only in a temporary scratchpad and would be lost. Move them into `e2e/` as Playwright tests runnable against local or QA.
 
-### L1 — Monorepo restructure (M)
-- [ ] npm workspaces + **Turborepo**. Layout:
-  - `apps/web`: today's Next.js app, moved unchanged.
-  - `apps/mobile`: the Expo app, added in L6.
-  - `packages/db`: Drizzle schema and migrations, plus generated Supabase TypeScript types.
-  - `packages/shared`: pure logic both apps use:
-    - business rules (`vendor-business-rules`, `feature-pricing`, `feature-placements`, `vendor-ranking`, `upcoming`, `vendor-completion`)
-    - zod schemas
-    - email rendering (`lib/email/*`)
-    - formatting (`formatZAR`, dates)
-    - FAQ content
-  - `packages/tokens`: the three colour themes as data. The web's CSS uses `oklch`; the app needs hex/RGB values, which `brand.ts` already shows how to produce.
+### L1 — Monorepo restructure (M) — **done 2026-09-25**
+- [x] npm workspaces + **Turborepo** (`turbo.json`; `packageManager` declared). Layout:
+  - `apps/web`: the Next.js app, moved unchanged (`git mv`, history kept).
+  - `apps/mobile`: the Expo app, to be added in L6.
+  - `packages/db`: Drizzle schema and migrations. *(Generated Supabase TypeScript types come in L5.)*
+  - `packages/shared`: pure logic both apps use: business rules, formatting, vendor ranking, email rendering, FAQ / static content. `upcoming` and `vendor-ranking` were split into a pure part (shared) and their database fetching (web).
+  - `packages/tokens`: the three colour themes as data with an oklch→hex converter, and a test that fails if `globals.css` and the token data drift.
   - `supabase/` stays at the root.
-- [ ] Vercel project root becomes `apps/web`.
-- [ ] Verification: the website behaves identically, and every test plus the e2e suites pass after the move.
+- [ ] Vercel project root becomes `apps/web` — do this when the Vercel project is created (L2).
+- [x] Verification: typecheck (4 workspaces), 83 unit tests, lint 0 errors, build, and the e2e suites all pass after the move. See `docs/gather_web_architecture.md` (2026-09-25 entry).
 
 ### L2 — Environments: QA and production (M)
 - [ ] Create two Supabase projects, **gather-qa** and **gather-prod**.

@@ -1,0 +1,22 @@
+{
+  "name": "@gather/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure TypeScript shared by the website and the native apps: business rules, formatting, ranking, email rendering, static content. No framework or server dependencies.",
+  "exports": {
+    "./*": "./src/*.ts",
+    "./email/*": "./src/email/*.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^3.2.7"
+  }
+}
