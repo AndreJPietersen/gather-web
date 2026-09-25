@@ -2,8 +2,8 @@ import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Card, LinkCard } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { supportCaseCategoryLabel } from "@/lib/support-case-categories";
+import { cn } from "@gather/shared/utils";
+import { supportCaseCategoryLabel } from "@gather/shared/support-case-categories";
 
 interface CaseRow {
   id: string;

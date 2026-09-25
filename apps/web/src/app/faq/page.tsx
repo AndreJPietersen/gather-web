@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
-import { FAQ_SECTIONS } from "@/lib/faq-content";
+import { FAQ_SECTIONS } from "@gather/shared/faq-content";
 
 // Public — no session check, same posture as /vendors: a guest deciding
 // whether to sign up has just as much reason to read this as an existing

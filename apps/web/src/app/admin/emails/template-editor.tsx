@@ -3,8 +3,8 @@
 import { useActionState, useState } from "react";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { EmailTemplateContent } from "@/lib/email/layout";
-import { fieldsForTemplate, sampleVars } from "@/lib/email/fields";
+import type { EmailTemplateContent } from "@gather/shared/email/layout";
+import { fieldsForTemplate, sampleVars } from "@gather/shared/email/fields";
 import { saveTemplate, sendTestEmail, type EmailActionState } from "./actions";
 import { EmailContentEditor, EmailPreview } from "./email-content-editor";
 

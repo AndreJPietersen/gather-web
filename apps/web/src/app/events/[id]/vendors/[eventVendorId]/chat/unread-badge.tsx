@@ -1,5 +1,5 @@
 import { MessageCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 // Colocated with the rest of the chat feature's shared pieces
 // (chat-thread.tsx, actions.ts), cross-imported into the vendor dashboard

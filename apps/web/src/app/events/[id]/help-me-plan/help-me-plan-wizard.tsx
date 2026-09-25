@@ -18,7 +18,7 @@ import {
   addVendorToEventForWizard,
   type WizardVendorState,
 } from "./actions";
-import type { EventPlanningProgressResult } from "@/lib/event-planning-progress";
+import type { EventPlanningProgressResult } from "@gather/shared/event-planning-progress";
 
 const TOTAL_STEPS = 5;
 

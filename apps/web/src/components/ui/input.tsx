@@ -1,7 +1,7 @@
 "use client";
 
 import { type ChangeEvent, type InputHTMLAttributes, type Ref, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   // Field (field.tsx) sets this to false when it already wraps this Input

@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 function getFocusable(container: HTMLElement): HTMLElement[] {
   return Array.from(

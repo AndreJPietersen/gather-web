@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { EmailTemplateContent } from "@/lib/email/layout";
+import type { EmailTemplateContent } from "@gather/shared/email/layout";
 
 // Parses the template-content fields both the template editor and the send
 // page post. Kept out of actions.ts because a "use server" module may only

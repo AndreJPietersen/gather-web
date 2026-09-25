@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { getPlacementState, type PlacementStatus } from "@/lib/feature-placements";
-import type { FeatureDuration, FeaturePriceRow, FeatureSpot } from "@/lib/feature-pricing";
+import { getPlacementState, type PlacementStatus } from "@gather/shared/feature-placements";
+import type { FeatureDuration, FeaturePriceRow, FeatureSpot } from "@gather/shared/feature-pricing";
 import { sastDayKey } from "@/lib/vendor-ranking";
 
 export interface VendorFeatureStatus {

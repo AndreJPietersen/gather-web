@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { BackButton } from "@/components/ui/back-button";
 import { Card, LinkCard } from "@/components/ui/card";
 import { Button, LinkButton } from "@/components/ui/button";
-import { formatEventDate, formatZAR } from "@/lib/utils";
+import { formatEventDate, formatZAR } from "@gather/shared/utils";
 import { sastDayKey } from "@/lib/vendor-ranking";
 import {
   PLACEMENT_STATE_CLASSES,
@@ -12,7 +12,7 @@ import {
   describePosition,
   getPlacementState,
   type PlacementStatus,
-} from "@/lib/feature-placements";
+} from "@gather/shared/feature-placements";
 import { markVendorVerified } from "./actions";
 import { Input } from "@/components/ui/input";
 import { hideVendorsAction, removeTeamMemberAction, restoreVendorAction } from "../../moderation/actions";

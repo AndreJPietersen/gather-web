@@ -3,9 +3,9 @@
 import { useActionState, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { EmailTemplateContent } from "@/lib/email/layout";
-import { firstNameOf, STANDARD_FIELDS } from "@/lib/email/fields";
-import { cn } from "@/lib/utils";
+import type { EmailTemplateContent } from "@gather/shared/email/layout";
+import { firstNameOf, STANDARD_FIELDS } from "@gather/shared/email/fields";
+import { cn } from "@gather/shared/utils";
 import { previewAudience, sendAdminEmail, sendTestEmail, type AudiencePreview, type EmailActionState } from "../actions";
 import { EmailContentEditor, EmailPreview } from "../email-content-editor";
 

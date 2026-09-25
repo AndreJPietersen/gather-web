@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { BackButton } from "@/components/ui/back-button";
 import { Card, LinkCard } from "@/components/ui/card";
-import { supportCaseCategoryLabel } from "@/lib/support-case-categories";
+import { supportCaseCategoryLabel } from "@gather/shared/support-case-categories";
 import { updateCaseStatus } from "./actions";
 import { CommentForm } from "./comment-form";
 

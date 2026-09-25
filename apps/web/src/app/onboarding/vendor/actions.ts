@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getOpenBusinessRequests, getOwnedBusinesses } from "@/lib/owned-businesses";
 import { getMaxOwnedBusinesses } from "@/lib/app-settings";
-import { checkBusinessRules, findUsableApproval, type BusinessRuleCheck } from "@/lib/vendor-business-rules";
+import { checkBusinessRules, findUsableApproval, type BusinessRuleCheck } from "@gather/shared/vendor-business-rules";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Business name is too short").max(150),

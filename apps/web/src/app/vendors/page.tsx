@@ -6,7 +6,7 @@ import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { VerificationBadge } from "@/components/vendor/verification-badge";
 import { VendorAvatar } from "@/components/vendor/vendor-avatar";
 import { VendorRatingBadge } from "@/components/vendor/vendor-rating-badge";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 import { createClient } from "@/lib/supabase/server";
 import { rankVendors } from "@/lib/vendor-ranking";
 import { getVendorRatingSummaries } from "@/lib/vendor-reviews";

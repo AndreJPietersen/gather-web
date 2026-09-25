@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, type HTMLMotionProps } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 const containerVariants = {
   hidden: {},

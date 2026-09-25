@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BadgeCheck, ShieldQuestion } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 interface VerificationBadgeProps {
   verified: boolean;

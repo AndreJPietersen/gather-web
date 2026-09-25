@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { renderEmail, type EmailTemplateContent } from "@/lib/email/layout";
-import type { MergeField } from "@/lib/email/fields";
-import type { MergeVars } from "@/lib/email/merge";
-import { cn } from "@/lib/utils";
+import { renderEmail, type EmailTemplateContent } from "@gather/shared/email/layout";
+import type { MergeField } from "@gather/shared/email/fields";
+import type { MergeVars } from "@gather/shared/email/merge";
+import { cn } from "@gather/shared/utils";
 
 // The shared "blocks + HTML" editor used by the template editor and the send
 // page. Fully controlled: the parent owns the content and posts it via the

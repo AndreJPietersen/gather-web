@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { BackButton } from "@/components/ui/back-button";
 import { Card, LinkCard } from "@/components/ui/card";
-import { formatEventDateTime } from "@/lib/utils";
+import { formatEventDateTime } from "@gather/shared/utils";
 import { Button, LinkButton } from "@/components/ui/button";
 import { listingsControlledBy } from "@/lib/admin/moderation";
 import { EditPlannerForm } from "./edit-planner-form";

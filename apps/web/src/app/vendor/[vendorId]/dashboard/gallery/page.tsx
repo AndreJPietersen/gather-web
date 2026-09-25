@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getVendorAccess } from "../../access";
 import { AddGalleryImageForm } from "../add-gallery-image-form";
 import { removeVendorGalleryImage } from "../actions";
-import { MAX_GALLERY_IMAGES } from "@/lib/gallery-limits";
+import { MAX_GALLERY_IMAGES } from "@gather/shared/gallery-limits";
 
 interface GalleryImageRow {
   id: string;

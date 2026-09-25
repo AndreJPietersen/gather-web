@@ -9,7 +9,7 @@ import { GatherWordmark } from "@/components/brand/gather-wordmark";
 import { GatherTentArt } from "@/components/brand/gather-tent-art";
 import { VendorAvatar } from "@/components/vendor/vendor-avatar";
 import { VendorRatingBadge } from "@/components/vendor/vendor-rating-badge";
-import { formatEventDateTime } from "@/lib/utils";
+import { formatEventDateTime } from "@gather/shared/utils";
 import type { RatingSummary } from "@/lib/vendor-reviews";
 
 interface PublicEvent {

@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { formatZAR } from "@/lib/utils";
+import { formatZAR } from "@gather/shared/utils";
 import {
   updateBudgetItem,
   removeBudgetItem,

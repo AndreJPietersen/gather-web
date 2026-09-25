@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { friendlyWriteError } from "@/lib/db-errors";
+import { friendlyWriteError } from "@gather/shared/db-errors";
 
 const schema = z.object({
   vendorId: z.string().uuid(),

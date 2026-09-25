@@ -14,10 +14,10 @@
   },
   "dependencies": {
     "@gather/db": "*",
+    "@gather/shared": "*",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "canvas-confetti": "^1.9.4",
-    "clsx": "^2.1.1",
     "lucide-react": "^1.45.0",
     "motion": "^13.2.0",
     "next": "16.3.5",
@@ -26,7 +26,6 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "resend": "^6.28.1",
-    "tailwind-merge": "^3.6.0",
     "zod": "^4.6.4",
     "zustand": "^5.0.15"
   },

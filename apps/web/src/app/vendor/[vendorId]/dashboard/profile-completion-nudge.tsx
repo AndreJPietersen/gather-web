@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getVendorCompletion, type VendorCompletionInput } from "@/lib/vendor-completion";
+import { getVendorCompletion, type VendorCompletionInput } from "@gather/shared/vendor-completion";
 
 // The dashboard's own condensed one-line version of ProfileCompletionCard's
 // full checklist (which now lives at the top of the Edit page — the

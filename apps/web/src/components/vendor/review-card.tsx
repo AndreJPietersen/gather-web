@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { StarRating } from "./star-rating";
-import { vendorInitials } from "@/lib/vendor-gradient";
+import { vendorInitials } from "@gather/shared/vendor-gradient";
 import type { ReviewRow } from "@/lib/vendor-reviews";
 
 function formatReviewDate(iso: string): string {

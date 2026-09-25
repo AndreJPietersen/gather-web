@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 import { useToastStore, type Toast } from "@/lib/stores/toast-store";
 
 const AUTO_DISMISS_MS = 4000;

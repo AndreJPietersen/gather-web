@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { BackButton } from "@/components/ui/back-button";
 import { PlacementForm } from "../placement-form";
-import { durationLabel, spotLabel } from "@/lib/feature-pricing";
+import { durationLabel, spotLabel } from "@gather/shared/feature-pricing";
 
 interface PlacementRow {
   id: string;

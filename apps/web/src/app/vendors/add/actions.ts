@@ -4,7 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getListingDailyLimit } from "@/lib/app-settings";
-import { friendlyWriteError } from "@/lib/db-errors";
+import { friendlyWriteError } from "@gather/shared/db-errors";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(150),

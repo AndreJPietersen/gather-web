@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { BackButton } from "@/components/ui/back-button";
 import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 const STATUS_LABEL = { sent: "Sent", failed: "Failed", skipped_unsubscribed: "Skipped — unsubscribed" } as const;
 

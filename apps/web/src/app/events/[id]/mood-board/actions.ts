@@ -3,8 +3,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { MAX_MOOD_BOARD_COLORS, MAX_MOOD_BOARD_PHOTOS } from "@/lib/mood-board-limits";
-import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/image-upload-limits";
+import { MAX_MOOD_BOARD_COLORS, MAX_MOOD_BOARD_PHOTOS } from "@gather/shared/mood-board-limits";
+import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@gather/shared/image-upload-limits";
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 

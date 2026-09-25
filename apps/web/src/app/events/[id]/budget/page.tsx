@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, LinkCard } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
-import { formatZAR } from "@/lib/utils";
+import { formatZAR } from "@gather/shared/utils";
 import { getEventAccess } from "../access";
 import { DEFAULT_BUDGET_WARNING_PERCENT } from "../../budget-constants";
 import { BudgetItemRow, type BudgetItem } from "./budget-item-row";

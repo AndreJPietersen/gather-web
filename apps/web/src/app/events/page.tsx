@@ -3,7 +3,7 @@ import { ListTodo, Wallet } from "lucide-react";
 import { LinkCard } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
-import { formatEventDateTime } from "@/lib/utils";
+import { formatEventDateTime } from "@gather/shared/utils";
 import { getUpcomingWindow, upcomingCutoffDate, isInstallmentOverdue } from "@/lib/upcoming";
 
 interface MyEvent {

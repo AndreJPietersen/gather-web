@@ -6,7 +6,7 @@ import { PatternSwitcher } from "@/components/theme/pattern-switcher";
 import { PersonaSwitcher } from "@/components/nav/persona-switcher";
 import { getSessionContext } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { vendorInitials } from "@/lib/vendor-gradient";
+import { vendorInitials } from "@gather/shared/vendor-gradient";
 import { getOpenBusinessRequests, getOwnedBusinesses, type BusinessRequestRow, type OwnedBusinessRow } from "@/lib/owned-businesses";
 import { getMaxOwnedBusinesses } from "@/lib/app-settings";
 import { signOut, respondToEventInvite, respondToVendorInvite } from "./actions";

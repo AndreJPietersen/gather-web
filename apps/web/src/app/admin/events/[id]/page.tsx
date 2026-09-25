@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { BackButton } from "@/components/ui/back-button";
 import { Card, LinkCard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatEventDateTime } from "@/lib/utils";
+import { formatEventDateTime } from "@gather/shared/utils";
 import { cancelEventAsAdmin } from "./actions";
 
 interface EventDetail {

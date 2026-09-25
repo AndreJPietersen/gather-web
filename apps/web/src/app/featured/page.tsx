@@ -2,8 +2,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { getSessionContext } from "@/lib/session";
-import { formatZAR } from "@/lib/utils";
-import { FEATURE_DURATIONS, FEATURE_SPOTS, findPrice } from "@/lib/feature-pricing";
+import { formatZAR } from "@gather/shared/utils";
+import { FEATURE_DURATIONS, FEATURE_SPOTS, findPrice } from "@gather/shared/feature-pricing";
 import { getFeaturePrices } from "@/lib/vendor-feature-status";
 import { getFeaturedEnabled } from "@/lib/app-settings";
 

@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { Card, LinkCard } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { formatEventDateTime } from "@/lib/utils";
+import { formatEventDateTime } from "@gather/shared/utils";
 
 interface EventRow {
   id: string;

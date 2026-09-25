@@ -1,5 +1,5 @@
 import { cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 import { Input, type InputProps } from "./input";
 import { PercentInput } from "./percent-input";
 

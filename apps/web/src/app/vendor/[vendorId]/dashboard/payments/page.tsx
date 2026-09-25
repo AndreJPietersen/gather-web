@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
-import { formatZAR } from "@/lib/utils";
+import { formatZAR } from "@gather/shared/utils";
 import { isInstallmentOverdue } from "@/lib/upcoming";
 import { getVendorAccess } from "../../access";
 

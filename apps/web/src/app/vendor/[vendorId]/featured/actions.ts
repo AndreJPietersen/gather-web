@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { endDateFor, findPrice, type FeatureDuration, type FeatureSpot } from "@/lib/feature-pricing";
+import { endDateFor, findPrice, type FeatureDuration, type FeatureSpot } from "@gather/shared/feature-pricing";
 import { getFeaturePrices } from "@/lib/vendor-feature-status";
 import { sastDayKey } from "@/lib/vendor-ranking";
 import { getVendorAccess } from "../access";

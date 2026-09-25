@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
-import { formatEventDateTime, formatZAR } from "@/lib/utils";
+import { formatEventDateTime, formatZAR } from "@gather/shared/utils";
 import { getVendorAccess } from "../../access";
 import { SubmitQuoteForm } from "../submit-quote-form";
 import { discardSuggestedQuote, sendSuggestedQuote } from "../actions";

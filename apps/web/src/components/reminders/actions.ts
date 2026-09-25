@@ -2,12 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail, emailSiteUrl } from "@/lib/email";
-import { formatEventDate, formatZAR } from "@/lib/utils";
+import { formatEventDate, formatZAR } from "@gather/shared/utils";
 import { getUpcomingWindow, upcomingCutoffDate, isInstallmentOverdue, isDateOverdue } from "@/lib/upcoming";
 import { getMyEventIds } from "@/lib/my-events";
-import { renderEmail } from "@/lib/email/layout";
+import { renderEmail } from "@gather/shared/email/layout";
 import { getSystemTemplateContent } from "@/lib/email/templates";
-import { firstNameOf, REMINDER_FOOTER } from "@/lib/email/fields";
+import { firstNameOf, REMINDER_FOOTER } from "@gather/shared/email/fields";
 
 // Reminder emails are the admin-editable system templates
 // (/admin/emails — payment_due_soon, payment_overdue, task_due_soon,

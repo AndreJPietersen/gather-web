@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getVendorCompletion, type VendorCompletionInput } from "@/lib/vendor-completion";
+import { getVendorCompletion, type VendorCompletionInput } from "@gather/shared/vendor-completion";
 
 // Where each checklist item's row should link to when it isn't done yet.
 // This card itself now lives at the top of the Edit page (reached from the

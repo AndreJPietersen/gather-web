@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Input, type InputProps } from "./input";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 // A password field with a show/hide toggle so someone can actually check
 // what they typed before submitting — plain `<Input type="password">`

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 import { useMounted } from "@/lib/hooks/use-mounted";
 
 export interface SwatchOption<T extends string> {

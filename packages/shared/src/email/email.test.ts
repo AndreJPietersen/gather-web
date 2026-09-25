@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { escapeHtml, fieldsUsed, mergeFields, safeUrl } from "./merge";
 import { blocksToHtml, sanitizeEmailHtml } from "./body";
 import { renderEmail, type EmailTemplateContent } from "./layout";
-import { unsubscribeToken, unsubscribeUrl, verifyUnsubscribeToken } from "./unsubscribe";
 import { firstNameOf, SYSTEM_TEMPLATE_DEFAULTS } from "./fields";
 
 const SITE = "https://gather.example";
@@ -89,16 +88,6 @@ describe("renderEmail", () => {
       const r = renderEmail(t, { first_name: "T", amount: "R1", vendor_name: "V", event_name: "E", due_date: "D", task_title: "X", link: "/x" }, { siteUrl: SITE });
       expect(r.html).not.toMatch(/\{\{/);
     }
-  });
-});
-
-describe("unsubscribe tokens", () => {
-  it("round-trips and rejects tampering", () => {
-    const t = unsubscribeToken("Thandi@Example.com");
-    expect(verifyUnsubscribeToken("thandi@example.com", t)).toBe(true);
-    expect(verifyUnsubscribeToken("someone@else.com", t)).toBe(false);
-    expect(verifyUnsubscribeToken("thandi@example.com", t.slice(0, -1) + "x")).toBe(false);
-    expect(unsubscribeUrl(SITE, "A@B.com")).toMatch(/^https:\/\/gather\.example\/unsubscribe\?e=a%40b\.com&t=/);
   });
 });
 

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 // One polygon, reused at every size this app shows a star at — the same
 // shape already used for the Featured badge's icon, so a filled star reads

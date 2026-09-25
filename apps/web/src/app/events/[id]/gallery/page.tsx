@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getEventAccess } from "../access";
 import { AddGalleryImageForm } from "./add-gallery-image-form";
-import { MAX_GALLERY_IMAGES } from "@/lib/gallery-limits";
+import { MAX_GALLERY_IMAGES } from "@gather/shared/gallery-limits";
 import { removeEventGalleryImage } from "./actions";
 
 interface GalleryImageRow {

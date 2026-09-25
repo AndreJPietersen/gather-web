@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 import { personaKey } from "@/lib/stores/persona-store";
 import { usePersonaStore } from "@/components/providers/persona-provider";
 

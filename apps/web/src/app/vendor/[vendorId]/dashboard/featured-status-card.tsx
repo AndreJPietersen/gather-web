@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { formatEventDate } from "@/lib/utils";
-import { durationLabel, nextDay, spotLabel } from "@/lib/feature-pricing";
+import { formatEventDate } from "@gather/shared/utils";
+import { durationLabel, nextDay, spotLabel } from "@gather/shared/feature-pricing";
 import type { VendorFeatureStatus } from "@/lib/vendor-feature-status";
 
 const DAY_MS = 86_400_000;

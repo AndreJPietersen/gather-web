@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { createClient } from "@/lib/supabase/server";
-import { isoToSastInput } from "@/lib/utils";
+import { isoToSastInput } from "@gather/shared/utils";
 import { EventForm } from "../../event-form";
 import { getEventAccess } from "../access";
 import { updateEvent } from "./actions";

@@ -3,9 +3,9 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { supportCaseCategoryLabel } from "@/lib/support-case-categories";
-import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/image-upload-limits";
-import { friendlyWriteError } from "@/lib/db-errors";
+import { supportCaseCategoryLabel } from "@gather/shared/support-case-categories";
+import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@gather/shared/image-upload-limits";
+import { friendlyWriteError } from "@gather/shared/db-errors";
 
 const schema = z.object({
   category: z.enum(["payments_billing", "vendor_booking", "event_setup", "account_verification", "app_bug", "other"], {

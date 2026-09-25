@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getEventAccess } from "../access";
-import { MAX_MOOD_BOARD_PHOTOS, MOOD_BOARD_TAG_PRESETS } from "@/lib/mood-board-limits";
+import { MAX_MOOD_BOARD_PHOTOS, MOOD_BOARD_TAG_PRESETS } from "@gather/shared/mood-board-limits";
 import { TaglineForm } from "./tagline-form";
 import { AddColorForm } from "./add-color-form";
 import { PaletteSwatch } from "./palette-swatch";

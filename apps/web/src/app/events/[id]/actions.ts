@@ -4,7 +4,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient, findUserByEmail } from "@/lib/supabase/service";
-import { friendlyWriteError } from "@/lib/db-errors";
+import { friendlyWriteError } from "@gather/shared/db-errors";
 
 const rsvpSchema = z.object({
   eventId: z.string().uuid(),

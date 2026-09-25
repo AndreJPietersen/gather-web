@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { OwnedBusiness } from "@/lib/vendor-business-rules";
+import type { OwnedBusiness } from "@gather/shared/vendor-business-rules";
 
 interface OwnerRow {
   vendors: { id: string; name: string; primary_category: string | null } | null;

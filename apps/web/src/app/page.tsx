@@ -8,7 +8,7 @@ import { VendorRatingBadge } from "@/components/vendor/vendor-rating-badge";
 import { GuestLanding } from "@/components/landing/guest-landing";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/session";
-import { formatEventDateTime, formatZAR } from "@/lib/utils";
+import { formatEventDateTime, formatZAR } from "@gather/shared/utils";
 import { getUpcomingWindow, upcomingCutoffDate, isInstallmentOverdue } from "@/lib/upcoming";
 import { rankVendors, type RankableVendor } from "@/lib/vendor-ranking";
 import { getVendorRatingSummaries } from "@/lib/vendor-reviews";

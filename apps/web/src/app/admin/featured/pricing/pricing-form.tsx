@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { FEATURE_DURATIONS, FEATURE_SPOTS, findPrice, type FeaturePriceRow } from "@/lib/feature-pricing";
+import { FEATURE_DURATIONS, FEATURE_SPOTS, findPrice, type FeaturePriceRow } from "@gather/shared/feature-pricing";
 import { saveFeaturePrices, type PricingFormState } from "./actions";
 
 const initialState: PricingFormState = {};

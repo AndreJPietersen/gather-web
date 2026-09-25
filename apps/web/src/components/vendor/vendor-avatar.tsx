@@ -1,4 +1,4 @@
-import { categoryGradient, vendorInitials } from "@/lib/vendor-gradient";
+import { categoryGradient, vendorInitials } from "@gather/shared/vendor-gradient";
 
 interface VendorAvatarProps {
   name: string;

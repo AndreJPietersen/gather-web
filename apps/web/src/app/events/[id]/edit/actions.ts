@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { sastInputToIso } from "@/lib/utils";
+import { sastInputToIso } from "@gather/shared/utils";
 import type { EventFormState } from "../../event-form";
 import { resolveEventType } from "../../resolve-event-type";
 import { validateEventDates } from "../../validate-event-dates";

@@ -2,8 +2,8 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { MAX_CHAT_IMAGES } from "@/lib/chat-limits";
-import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/image-upload-limits";
+import { MAX_CHAT_IMAGES } from "@gather/shared/chat-limits";
+import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@gather/shared/image-upload-limits";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60; // matches the event-gallery page's own TTL
 

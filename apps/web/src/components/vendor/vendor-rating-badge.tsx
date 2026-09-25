@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 // The card-sized sibling of RatingSummaryCard/StarRating — a single small
 // star + the average, with the review count in parentheses where there's

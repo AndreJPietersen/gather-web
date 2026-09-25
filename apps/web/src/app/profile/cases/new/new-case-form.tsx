@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { compressImageFile } from "@/lib/image-compression";
-import { SUPPORT_CASE_CATEGORIES } from "@/lib/support-case-categories";
+import { SUPPORT_CASE_CATEGORIES } from "@gather/shared/support-case-categories";
 import { createSupportCase, type NewSupportCaseState } from "./actions";
 
 const initialState: NewSupportCaseState = {};

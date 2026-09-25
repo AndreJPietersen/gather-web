@@ -2,7 +2,7 @@ import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Card } from "@/components/ui/card";
 import { Button, LinkButton } from "@/components/ui/button";
-import { formatEventDate, formatZAR } from "@/lib/utils";
+import { formatEventDate, formatZAR } from "@gather/shared/utils";
 import { sastDayKey } from "@/lib/vendor-ranking";
 import {
   PLACEMENT_STATE_CLASSES,
@@ -11,8 +11,8 @@ import {
   getPlacementState,
   type PlacementState,
   type PlacementStatus,
-} from "@/lib/feature-placements";
-import { durationLabel, spotLabel, type FeatureDuration, type FeatureSpot } from "@/lib/feature-pricing";
+} from "@gather/shared/feature-placements";
+import { durationLabel, spotLabel, type FeatureDuration, type FeatureSpot } from "@gather/shared/feature-pricing";
 import { setFeaturedEnabled, setPlacementStatus } from "./actions";
 import { getFeaturedEnabled } from "@/lib/app-settings";
 

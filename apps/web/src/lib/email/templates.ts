@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { SYSTEM_TEMPLATE_DEFAULTS, type SystemTemplateKey } from "./fields";
-import type { EmailCategory, EmailTemplateContent } from "./layout";
+import { SYSTEM_TEMPLATE_DEFAULTS, type SystemTemplateKey } from "@gather/shared/email/fields";
+import type { EmailCategory, EmailTemplateContent } from "@gather/shared/email/layout";
 
 // Loading email_templates rows (service role — the table is admin-only).
 // Callers must be admin code behind requireAdmin(), or the reminder sender,

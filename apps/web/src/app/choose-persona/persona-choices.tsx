@@ -3,7 +3,7 @@
 import { LinkCard } from "@/components/ui/card";
 import { usePersonaStore } from "@/components/providers/persona-provider";
 import { personaKey } from "@/lib/stores/persona-store";
-import { categoryGradient, vendorInitials } from "@/lib/vendor-gradient";
+import { categoryGradient, vendorInitials } from "@gather/shared/vendor-gradient";
 import type { Persona } from "@/lib/session";
 
 const ROLE_LABELS = { owner: "Owner", manager: "Manager", staff: "Staff" } as const;

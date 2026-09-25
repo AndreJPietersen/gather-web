@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
-import { formatZAR } from "@/lib/utils";
+import { formatZAR } from "@gather/shared/utils";
 import { getEventAccess } from "../../access";
 import { declineQuote, setVendorConfirmed } from "./actions";
 import { AcceptQuoteForm } from "./accept-quote-form";

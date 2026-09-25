@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { cn, formatEventDate, formatZAR } from "@/lib/utils";
+import { cn, formatEventDate, formatZAR } from "@gather/shared/utils";
 import {
   FEATURE_DURATIONS,
   FEATURE_SPOTS,
@@ -14,7 +14,7 @@ import {
   type FeatureDuration,
   type FeaturePriceRow,
   type FeatureSpot,
-} from "@/lib/feature-pricing";
+} from "@gather/shared/feature-pricing";
 import { requestFeaturedPlacement, type FeatureRequestState } from "./actions";
 
 const initialState: FeatureRequestState = {};

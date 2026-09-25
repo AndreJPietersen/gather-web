@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 import { usePersonaStore } from "@/components/providers/persona-provider";
 import { UNSAVED_CHANGES_MESSAGE, useUnsavedChangesStore } from "@/lib/stores/unsaved-changes-store";
 import { confirmDialog } from "@/lib/stores/confirm-dialog-store";

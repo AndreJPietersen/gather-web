@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { friendlyWriteError } from "@/lib/db-errors";
+import { friendlyWriteError } from "@gather/shared/db-errors";
 
 const inviteSchema = z.object({
   vendorId: z.string().uuid(),

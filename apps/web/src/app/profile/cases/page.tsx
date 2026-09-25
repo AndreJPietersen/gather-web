@@ -5,7 +5,7 @@ import { LinkButton } from "@/components/ui/button";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/session";
-import { supportCaseCategoryLabel } from "@/lib/support-case-categories";
+import { supportCaseCategoryLabel } from "@gather/shared/support-case-categories";
 
 interface MyCaseRow {
   id: string;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { HelpMePlanWizard } from "./help-me-plan-wizard";
-import type { EventPlanningProgressResult } from "@/lib/event-planning-progress";
+import type { EventPlanningProgressResult } from "@gather/shared/event-planning-progress";
 
 // Always visible on the event page regardless of progress (Andre's call) —
 // unlike the vendor side's ProfileCompletionCard, this doesn't disappear

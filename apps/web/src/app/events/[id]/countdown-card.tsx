@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCountdownRemaining, type CountdownRemaining } from "@/lib/utils";
+import { getCountdownRemaining, type CountdownRemaining } from "@gather/shared/utils";
 
 // "Glass tiles on gradient" — the direction picked off the Event Countdown
 // Options design canvas (a merge of two earlier sketches: a bold gradient

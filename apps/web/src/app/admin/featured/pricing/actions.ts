@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { logAdminAction } from "@/lib/admin/audit-log";
 import { createServiceClient } from "@/lib/supabase/service";
-import { FEATURE_DURATIONS, FEATURE_SPOTS } from "@/lib/feature-pricing";
+import { FEATURE_DURATIONS, FEATURE_SPOTS } from "@gather/shared/feature-pricing";
 
 export interface PricingFormState {
   error?: string;

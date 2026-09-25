@@ -3,8 +3,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { MAX_GALLERY_IMAGES } from "@/lib/gallery-limits";
-import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@/lib/image-upload-limits";
+import { MAX_GALLERY_IMAGES } from "@gather/shared/gallery-limits";
+import { MAX_IMAGE_BYTES, ALLOWED_IMAGE_TYPES } from "@gather/shared/image-upload-limits";
 
 export interface GalleryUploadState {
   error?: string;

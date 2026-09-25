@@ -3,7 +3,7 @@
 import { type ButtonHTMLAttributes } from "react";
 import Link, { type LinkProps } from "next/link";
 import { motion, type HTMLMotionProps } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 // "primary" (gradient + shimmer) is reserved for genuinely grandiose
 // moments — log in, register, the guest landing hero's CTAs — not every

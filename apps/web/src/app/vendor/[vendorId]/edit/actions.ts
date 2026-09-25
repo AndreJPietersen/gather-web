@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { sameCategory } from "@/lib/vendor-business-rules";
+import { sameCategory } from "@gather/shared/vendor-business-rules";
 
 const schema = z.object({
   vendorId: z.string().uuid(),

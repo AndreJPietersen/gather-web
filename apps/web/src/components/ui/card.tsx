@@ -7,7 +7,7 @@
 import { type HTMLAttributes } from "react";
 import Link, { type LinkProps } from "next/link";
 import { motion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 const MotionLink = motion.create(Link);
 

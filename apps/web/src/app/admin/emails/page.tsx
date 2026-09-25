@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { Card, LinkCard } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
 import { listTemplates } from "@/lib/email/templates";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 interface SentRow {
   id: string;

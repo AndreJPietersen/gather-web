@@ -2,7 +2,7 @@
 
 import { useState, type ChangeEvent, type Ref } from "react";
 import { Input } from "./input";
-import { cn } from "@/lib/utils";
+import { cn } from "@gather/shared/utils";
 
 // Unlike CurrencyInput, this never needs a hidden-field trick: the "%" is
 // shown as a visual overlay next to the field, not woven into the value

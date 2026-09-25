@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, LinkCard } from "@/components/ui/card";
 import { StaggerList, StaggerItem } from "@/components/motion/stagger-list";
 import { createClient } from "@/lib/supabase/server";
-import { cn, formatEventDate, getCountdownRemaining } from "@/lib/utils";
+import { cn, formatEventDate, getCountdownRemaining } from "@gather/shared/utils";
 import { isDateOverdue } from "@/lib/upcoming";
 import { getEventAccess } from "../access";
 import { AttendeeRow } from "./attendee-row";

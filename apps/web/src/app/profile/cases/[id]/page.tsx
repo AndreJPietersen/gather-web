@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/session";
-import { supportCaseCategoryLabel } from "@/lib/support-case-categories";
+import { supportCaseCategoryLabel } from "@gather/shared/support-case-categories";
 
 interface MyCaseDetail {
   id: string;
