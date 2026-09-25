@@ -29,7 +29,9 @@
     "db:fingerprint": "npm run db:fingerprint -w @gather/db --",
     "db:seed:reference": "npm run db:seed:reference -w @gather/db",
     "db:seed:demo": "npm run db:seed:demo -w @gather/db",
-    "auth-emails": "tsx scripts/generate-auth-emails.ts"
+    "auth-emails": "tsx scripts/generate-auth-emails.ts",
+    "db:types": "npm run db:types -w @gather/db",
+    "db:types:check": "npm run db:types:check -w @gather/db"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

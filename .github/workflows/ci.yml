@@ -82,6 +82,10 @@ jobs:
           npm run db:migrate
           npm run db:seed:reference
           npm run db:seed:demo
+      # Fails the pull request if a migration changed the schema but
+      # packages/db/src/database.types.ts was not regenerated (npm run db:types).
+      - name: Check the generated database types are current
+        run: npm run db:types:check
       - name: Build the app
         run: npm run build
       - name: Start the app

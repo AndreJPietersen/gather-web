@@ -4,7 +4,9 @@
   "private": true,
   "description": "Drizzle schema (tables, RLS policies) and SQL migrations for Gather's Postgres database.",
   "exports": {
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./database.types": "./src/database.types.ts",
+    "./client": "./src/client.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -15,11 +17,14 @@
     "db:fingerprint": "node scripts/fingerprint.mjs",
     "db:studio": "drizzle-kit studio",
     "db:seed:reference": "node scripts/seed.mjs reference",
-    "db:seed:demo": "node scripts/seed.mjs demo"
+    "db:seed:demo": "node scripts/seed.mjs demo",
+    "db:types": "node scripts/gen-types.mjs",
+    "db:types:check": "node scripts/gen-types.mjs --check"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
-    "postgres": "^3.4.9"
+    "postgres": "^3.4.9",
+    "@supabase/supabase-js": "^2.116.0"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.10",

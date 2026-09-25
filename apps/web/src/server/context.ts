@@ -1,4 +1,4 @@
-import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createGatherClient, type GatherClient } from "@gather/db/client";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 
 // "Who is asking": the signed-in person plus a Supabase client that acts AS
@@ -8,7 +8,7 @@ import { createClient as createCookieClient } from "@/lib/supabase/server";
 export interface Caller {
   userId: string;
   email: string | null;
-  supabase: SupabaseClient;
+  supabase: GatherClient;
 }
 
 /** The website: the person's session is in the request's cookies. */
@@ -16,7 +16,7 @@ export async function callerFromCookies(): Promise<Caller | null> {
   const supabase = await createCookieClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) return null;
-  return { userId: data.user.id, email: data.user.email ?? null, supabase: supabase as unknown as SupabaseClient };
+  return { userId: data.user.id, email: data.user.email ?? null, supabase };
 }
 
 /** The native apps: "Authorization: Bearer <Supabase access token>". */
@@ -25,9 +25,10 @@ export async function callerFromBearer(request: Request): Promise<Caller | null>
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
   if (!token) return null;
 
-  const supabase = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
+  const supabase = createGatherClient({
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    accessToken: token,
   });
   // Ask the auth server, not just decode the token: a banned (suspended) or
   // deleted account's token must stop working immediately.

@@ -17,6 +17,7 @@
   "include": [
     "src/**/*.ts",
     "drizzle.config.ts",
-    "manifest.test.ts"
+    "manifest.test.ts",
+    "client.test.ts"
   ]
 }

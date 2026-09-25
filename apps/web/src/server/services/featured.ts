@@ -44,13 +44,14 @@ export async function requestFeaturedPlacement(caller: Caller, input: unknown): 
   }
 
   const prices = await getFeaturePrices();
+  const price = findPrice(prices, v.spot as FeatureSpot, v.duration as FeatureDuration);
   const { error } = await service.from("vendor_feature_placements").insert({
     vendor_id: v.vendorId,
     status: "pending",
     starts_on: v.startsOn,
     ends_on: endDateFor(v.startsOn, v.duration as FeatureDuration),
     position: null,
-    fee_amount: findPrice(prices, v.spot as FeatureSpot, v.duration as FeatureDuration),
+    fee_amount: price === null ? null : Number(price),
     requested_by: caller.userId,
     requested_spot: v.spot,
     requested_duration: v.duration,
