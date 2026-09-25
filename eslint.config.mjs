@@ -5,5 +5,5 @@ import nextTs from "eslint-config-next/typescript";
 // app and package has its own eslint config and lints itself.
 export default defineConfig([
   ...nextTs,
-  globalIgnores(["apps/**", "packages/**", "node_modules/**", "e2e/.output/**"]),
+  globalIgnores(["apps/**", "node_modules/**", "e2e/.output/**"]),
 ]);

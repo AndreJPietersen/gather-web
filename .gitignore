@@ -49,3 +49,6 @@ next-env.d.ts
 
 # e2e screenshots / output
 /e2e/.output
+
+# turborepo
+.turbo/

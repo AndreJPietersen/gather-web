@@ -1,0 +1,20 @@
+{
+  "name": "@gather/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gather's design tokens as data: the three colour themes (oklch, plus hex for email and native), radii and font names.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@gather/shared": "*",
+    "@types/node": "^20",
+    "typescript": "^5",
+    "vitest": "^3.2.7"
+  }
+}
