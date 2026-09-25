@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export interface VendorAccess {
@@ -10,12 +11,12 @@ export interface VendorAccess {
 // manage the listing and see money; Staff can chat, add gallery photos,
 // keep team notes on bookings and *suggest* quotes for a Manager to send —
 // but can't see payment amounts or other quotes' prices.
-export async function getVendorAccess(vendorId: string, userId: string | null): Promise<VendorAccess> {
+export async function getVendorAccess(vendorId: string, userId: string | null, client?: SupabaseClient): Promise<VendorAccess> {
   if (!userId) {
     return { isTeamMember: false, role: null };
   }
 
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
   const { data } = await supabase
     .from("vendor_team_members")
     .select("role")

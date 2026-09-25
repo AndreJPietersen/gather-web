@@ -11,10 +11,10 @@
 **Done without accounts (branch `chore/l2-seed-and-ci`):** one migration runner for both migration folders (`npm run db:migrate`), the seed script (`db:seed:reference` / `db:seed:demo`), and an `e2e` CI job that builds a fresh database, seeds it and runs all ten Playwright suites. Verified locally against a from-scratch database: 10/10 suites pass.
 
 **Next, in order (no accounts needed):**
-1. **L3** is mostly done on branch `feat/l3-launch-readiness` (legal drafts, password reset, account deletion, branded auth emails, 404/error, robots/sitemap; 12/12 e2e suites pass). Left: Open Graph/page titles, an admin-assisted data-export tool, the OKLCH contrast and mobile-pass items from `gather_web_epic_roadmap.md`.
-2. **L4** versioned API for flows that are Server-Action-only today, then **L5** generated Supabase types and a shared data layer.
-3. **L6/L7** Expo app foundation and screens (Android emulator via Android Studio; iPhone via Expo Go).
-4. **L13** database part (PostGIS, near-me query, location forms). Map rendering waits for Mapbox.
+1. **L5** generated Supabase types and a shared data layer (`supabase gen types` into `packages/db`; a client factory for web and mobile).
+2. **L6/L7** Expo app foundation and screens (Android emulator via Android Studio; iPhone via Expo Go). L4's API is ready for the flows the apps can't do through Supabase directly.
+3. **L13** database part (PostGIS, near-me query, location forms). Map rendering waits for Mapbox.
+4. L3 leftovers: Open Graph/page titles, an admin-assisted data-export tool, the OKLCH contrast and mobile-pass items from `gather_web_epic_roadmap.md`.
 
 **In parallel, Andre (admin, long lead times):** decide individual vs organisation for the developer accounts (an organisation needs a D-U-N-S number, 1–2 weeks); pick the domain and store app name; start Apple/Google enrolment; create the free accounts (Supabase, Vercel, Expo, Mapbox, Resend, Cloudflare). **Do not add a payment method to any free account — tell Claude if one asks for a card.**
 
@@ -137,11 +137,12 @@ Things the website needs before any real user (and which the stores also require
 - [ ] *(needs accounts: Supabase QA)* Re-run the security suites (exploits, stranger sweep) against **QA**, not just local.
 - [ ] Close the open items in `gather_web_epic_roadmap.md`: the OKLCH contrast failures, a real mobile-device pass, and the payments decision (Stripe was never wired; today tracking is manual).
 
-### L4 — API for the native apps (M)
-- [ ] Versioned **route handlers** at `apps/web/app/api/v1/*`, authenticated with the caller's Supabase access token (`Authorization: Bearer …`). The same guards apply: `getVendorAccess`, `requireAdmin` (admin endpoints aren't exposed at all), and the rate limits.
-- [ ] Refactor each Server Action in the "Needs the API" column into a **shared service function**. The Server Action and the API route become thin wrappers, so there's one implementation and one set of rules.
-- [ ] Consistent error format (reuse `friendlyWriteError`), with request validation by the shared zod schemas.
-- [ ] Tests: each endpoint with no token, a stranger's token and the right token, added to the e2e suite.
+### L4 — API for the native apps (M) — **done 2026-09-25**
+- [x] Versioned **route handlers** at `apps/web/src/app/api/v1/*`, authenticated with the caller's Supabase access token (`Authorization: Bearer …`; checked against the auth server on every call, so suspended/deleted accounts stop working at once). Endpoint reference: `docs/gather_api_v1.md`. Admin endpoints aren't exposed.
+- [x] Each Server Action in the "Needs the API" column below is now a **shared service function** in `apps/web/src/server/services/` (`vendors`, `featured`, `events`, `account`, `reminders`); the Server Action and the API route are thin wrappers, so there's one implementation and one set of rules. (Support cases with attachments, and vendor logo upload, are plain RLS-protected writes plus Storage, so the apps do those directly — no endpoint needed.)
+- [x] Consistent error format `{ error: { code, message, details? } }` with matching HTTP status; validation by the same zod schemas the website uses (they moved into the services); `friendlyWriteError` still used for database errors.
+- [x] Tests: `e2e/scripts/api-v1.mjs` — 34 checks, every endpoint with no token, a garbage token, a stranger's token and the right token, plus a suspended and a deleted account's token.
+- [ ] *(needs accounts: Cloudflare/Vercel)* per-IP rate limiting for the one unauthenticated endpoint (guest RSVP). Today only the website's own behaviour (none) is matched.
 
 ### L5 — Shared package & typed data layer (S)
 - [ ] Generate **Supabase TypeScript types** (`supabase gen types`) into `packages/db`, used by both apps. Today the web code types query results by hand with `.returns<…>()`.
@@ -343,6 +344,8 @@ To add, when each epic arrives:
 - **L13**: nothing to install; just a Mapbox account and tokens (one set for QA, one for production).
 
 ## Progress log
+
+- **2026-09-25**: **L4 done** (no accounts needed): `/api/v1` with 9 endpoints over shared service functions (`apps/web/src/server/`), the website's Server Actions refactored into thin wrappers, `docs/gather_api_v1.md`, and an e2e suite of 34 checks.
 
 - **2026-09-25**: **L3 mostly done** (no accounts needed): password reset, account deletion (`delete_account`), draft privacy policy/terms with POPIA consent line, branded Auth emails, 404/error pages, robots + sitemap. Two new e2e suites (account deletion; launch readiness). Local Supabase `site_url`/redirect allow-list now `http://localhost:3000`.
 

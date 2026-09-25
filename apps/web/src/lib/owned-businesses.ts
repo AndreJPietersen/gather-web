@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { OwnedBusiness } from "@gather/shared/vendor-business-rules";
 
@@ -14,8 +15,8 @@ export interface OwnedBusinessRow extends OwnedBusiness {
 // count. Manager/Staff memberships don't count: being on someone else's team
 // isn't creating businesses. Read as the user (their own membership rows are
 // always visible to them under vendor_team_members_select_own_team).
-export async function getOwnedBusinesses(userId: string): Promise<OwnedBusinessRow[]> {
-  const supabase = await createClient();
+export async function getOwnedBusinesses(userId: string, client?: SupabaseClient): Promise<OwnedBusinessRow[]> {
+  const supabase = client ?? (await createClient());
   const { data } = await supabase
     .from("vendor_team_members")
     .select("vendors(id, name, primary_category)")
@@ -41,8 +42,8 @@ export interface BusinessRequestRow {
 
 // The user's own exception requests that still matter: the pending one (at
 // most one) and any approved-but-unspent ones.
-export async function getOpenBusinessRequests(userId: string): Promise<BusinessRequestRow[]> {
-  const supabase = await createClient();
+export async function getOpenBusinessRequests(userId: string, client?: SupabaseClient): Promise<BusinessRequestRow[]> {
+  const supabase = client ?? (await createClient());
   const { data } = await supabase
     .from("vendor_business_requests")
     .select("id, business_name, primary_category, needs_extra_slot, needs_duplicate_category, status, rejection_reason, created_at")
