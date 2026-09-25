@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { setSuppressed } from "@/lib/email/suppressions";
+import { createServiceClient } from "@/lib/supabase/service";
+import { cleanupOrphanedStorage } from "@/lib/storage-cleanup";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -135,4 +137,38 @@ export async function respondToVendorInvite(formData: FormData): Promise<void> {
   }
 
   revalidatePath("/profile");
+}
+
+export interface DeleteAccountState {
+  error?: string;
+}
+
+// Permanently deletes the signed-in person's account. The rules (what is
+// deleted, what is kept and re-pointed at "Deleted user") live in the
+// database function delete_account (migration 0057); this only checks who is
+// asking and that they meant it. The function is callable by the service role
+// alone, so it is always the *session's* user id that is passed, never one
+// from the form.
+export async function deleteMyAccount(_prev: DeleteAccountState, formData: FormData): Promise<DeleteAccountState> {
+  if (formData.get("confirm") !== "DELETE") {
+    return { error: "Type DELETE (in capitals) to confirm." };
+  }
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return { error: "You need to be logged in." };
+
+  const { error } = await createServiceClient().rpc("delete_account", { p_user: data.user.id });
+  if (error) {
+    return {
+      error: error.message.includes("admin access")
+        ? "Admin accounts can't be deleted here. Ask another admin to remove your admin access first."
+        : "We couldn't delete your account. Please try again or contact support.",
+    };
+  }
+
+  await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  // Their uploads are now unreferenced; sweep what is old enough now, the
+  // daily job gets the rest. A failure here must not undo the deletion.
+  await cleanupOrphanedStorage().catch(() => {});
+  redirect("/?deleted=1");
 }

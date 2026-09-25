@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { getRegistrationEnabled } from "@/lib/app-settings";
+import { LegalLinks } from "@/components/legal/legal-page";
 import { RegisterForm } from "./register-form";
 
 export default async function RegisterPage({ searchParams }: PageProps<"/register">) {
@@ -20,7 +21,20 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
         </p>
       </div>
       {registrationEnabled ? (
-        <RegisterForm persona={persona} />
+        <>
+          <RegisterForm persona={persona} />
+          <p className="text-center text-xs font-semibold text-text-muted">
+            By creating an account you agree to our{" "}
+            <Link href="/terms" className="underline">
+              Terms of use
+            </Link>{" "}
+            and accept our{" "}
+            <Link href="/privacy" className="underline">
+              Privacy policy
+            </Link>
+            , which explains how we handle your personal information.
+          </p>
+        </>
       ) : (
         <Card>
           <p className="text-sm font-extrabold text-ink">Sign-ups are paused</p>
@@ -36,6 +50,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
           Log in
         </Link>
       </p>
+      <LegalLinks />
     </main>
   );
 }

@@ -1683,9 +1683,11 @@ export const vendorReviews = pgTable(
   "vendor_reviews",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    eventVendorId: uuid("event_vendor_id")
-      .notNull()
-      .references(() => eventVendors.id, { onDelete: "cascade" }),
+    // Nullable on purpose: when a planner deletes their account their events
+    // (and so the bookings) are deleted, but the review of the vendor must
+    // stay. It keeps `vendor_id`, and its reviewer becomes the "Deleted user"
+    // placeholder (see delete_account, migration 0057/0058).
+    eventVendorId: uuid("event_vendor_id").references(() => eventVendors.id, { onDelete: "set null" }),
     vendorId: uuid("vendor_id")
       .notNull()
       .references(() => vendors.id, { onDelete: "cascade" }),
@@ -1778,8 +1780,8 @@ export const vendorReviewReplies = pgTable(
       for: "insert",
       to: authenticatedRole,
       withCheck: sql`${table.repliedBy} = ${authUid} AND EXISTS (
-        SELECT 1 FROM vendor_reviews vr JOIN event_vendors ev ON ev.id = vr.event_vendor_id
-        WHERE vr.id = ${table.vendorReviewId} AND public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+        SELECT 1 FROM vendor_reviews vr
+        WHERE vr.id = ${table.vendorReviewId} AND public.is_vendor_team_member(vr.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
       )`,
     }),
     // Any Owner/Manager teammate may edit the reply, not just whoever
@@ -1789,8 +1791,8 @@ export const vendorReviewReplies = pgTable(
       for: "update",
       to: authenticatedRole,
       using: sql`EXISTS (
-        SELECT 1 FROM vendor_reviews vr JOIN event_vendors ev ON ev.id = vr.event_vendor_id
-        WHERE vr.id = ${table.vendorReviewId} AND public.is_vendor_team_member(ev.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
+        SELECT 1 FROM vendor_reviews vr
+        WHERE vr.id = ${table.vendorReviewId} AND public.is_vendor_team_member(vr.vendor_id, ${authUid}, ARRAY['owner', 'manager'])
       )`,
     }),
   ],
@@ -2074,6 +2076,10 @@ export const appSettings = pgTable(
     // Most recipients one admin email send may go to (/admin/emails/send) —
     // a guard against accidentally blasting the whole user base.
     maxEmailRecipients: integer("max_email_recipients").notNull().default(500),
+    // Uploaded files that no database row points at are deleted by the storage
+    // cleanup job once they are older than this (so a file uploaded a moment
+    // before its row is saved is never caught). /admin/settings.
+    storageCleanupMinAgeMinutes: integer("storage_cleanup_min_age_minutes").notNull().default(60),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [

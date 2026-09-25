@@ -139,6 +139,11 @@ export const FAQ_SECTIONS: FaqSection[] = [
           "Tap \"Unsubscribe from Gather announcements\" at the bottom of any announcement email, or untick \"Gather news & announcements\" under Notifications on your Profile tab. Reminders about your own events and emails about your account still arrive — turn off email reminders on your Profile if you don't want those either.",
       },
       {
+        question: "How do I delete my account, and what happens to my data?",
+        answer:
+          "Open your Profile tab, scroll to \"Your data\" and choose \"Delete my account\". Your events, guest lists, tasks and budgets are deleted, and you leave every business team (a business with no one left on it is hidden). Reviews you left for vendors, and messages and other things you wrote for other people, stay but show as \"Deleted user\". Photos and files you uploaded are removed from storage. It can't be undone. To get a copy of your information first, email us — the privacy policy has the address.",
+      },
+      {
         question: "Can't find an answer here?",
         answer: "Report it from your Profile tab and we'll take a look — you'll be able to check back on the status from there too.",
       },

@@ -66,3 +66,9 @@ The suites assume the seeded accounts (`vendortest@gather.dev`,
 that isn't Dr Dre DJ, and the reference data. To rebuild a clean copy of all of
 that: `npm run db:stop`, delete the Supabase Docker volumes (or use a second
 stack), `npm run db:start`, then `npm run db:migrate && npm run db:seed:reference && npm run db:seed:demo`.
+
+## Launch-readiness suites (L3)
+
+- `account-deletion.mjs` — the `delete_account` database function: what is erased, what is kept as "Deleted user", and that a signed-in user can't call it.
+- `launch-readiness.mjs` — privacy/terms/robots/sitemap/404, the password-reset flow through the real email in Mailpit (checks the Gather layout), the bad-link guard, and deleting an account from the Profile page.
+- `storage-cleanup.mjs` — the unused-file cleanup (old orphan removed for real, referenced/new files kept, cron route locked).

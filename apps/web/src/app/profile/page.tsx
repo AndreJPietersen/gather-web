@@ -10,6 +10,7 @@ import { vendorInitials } from "@gather/shared/vendor-gradient";
 import { getOpenBusinessRequests, getOwnedBusinesses, type BusinessRequestRow, type OwnedBusinessRow } from "@/lib/owned-businesses";
 import { getMaxOwnedBusinesses } from "@/lib/app-settings";
 import { signOut, respondToEventInvite, respondToVendorInvite } from "./actions";
+import { DeleteAccountForm } from "./delete-account-form";
 import { NotificationPreferencesForm } from "./notification-preferences-form";
 import { isSuppressed } from "@/lib/email/suppressions";
 
@@ -226,6 +227,22 @@ export default async function ProfilePage() {
           <h2 className="font-display text-lg font-semibold text-ink">Notifications & Reminders</h2>
           <Card className="mt-3 flex flex-col gap-3">
             <NotificationPreferencesForm emailReminders={emailReminders} announcements={announcements} upcomingWindow={upcomingWindow} />
+          </Card>
+        </div>
+      )}
+
+      {session.status === "authenticated" && (
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink">Your data</h2>
+          <Card className="mt-3 flex flex-col gap-3">
+            <p className="text-xs font-semibold text-text-muted">
+              Want a copy of your information? Email us and we&apos;ll send it — see the{" "}
+              <Link href="/privacy" className="underline">
+                privacy policy
+              </Link>
+              .
+            </p>
+            <DeleteAccountForm />
           </Card>
         </div>
       )}

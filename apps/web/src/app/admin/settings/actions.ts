@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { cleanupOrphanedStorage } from "@/lib/storage-cleanup";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { logAdminAction } from "@/lib/admin/audit-log";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -45,6 +46,7 @@ const limitsSchema = z.object({
   max_owned_businesses: whole(1, 100),
   listing_daily_limit: whole(1, 1000),
   max_email_recipients: whole(1, 100000),
+  storage_cleanup_min_age_minutes: whole(5, 10080),
 });
 
 // Owner limit + daily listing cap. Both are read by the database itself
@@ -111,4 +113,24 @@ export async function saveWriteRateLimits(_prev: SettingsFormState, formData: Fo
   await logAdminAction({ adminId: userId, action: "write_rate_limits.updated", targetTable: "write_rate_limits", detail: { updates } });
   refresh();
   return { saved: true };
+}
+
+export interface StorageCleanupState {
+  message?: string;
+  error?: string;
+}
+
+// The "Run now" button. The same job also runs daily from cron and after an
+// account is deleted; this is for checking it or clearing up on demand.
+export async function runStorageCleanup(): Promise<StorageCleanupState> {
+  const { userId } = await requireAdmin();
+  try {
+    const r = await cleanupOrphanedStorage();
+    await logAdminAction({ adminId: userId, action: "storage.cleanup", targetTable: "storage.objects", detail: r as unknown as Record<string, unknown> });
+    return {
+      message: r.found === 0 ? "Nothing to clean up." : `Removed ${r.removed} unused file${r.removed === 1 ? "" : "s"}${r.failed ? ` (${r.failed} could not be removed)` : ""}.`,
+    };
+  } catch {
+    return { error: "The cleanup failed. Try again in a moment." };
+  }
 }

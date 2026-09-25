@@ -11,7 +11,7 @@
 **Done without accounts (branch `chore/l2-seed-and-ci`):** one migration runner for both migration folders (`npm run db:migrate`), the seed script (`db:seed:reference` / `db:seed:demo`), and an `e2e` CI job that builds a fresh database, seeds it and runs all ten Playwright suites. Verified locally against a from-scratch database: 10/10 suites pass.
 
 **Next, in order (no accounts needed):**
-1. **L3** launch readiness: account deletion, privacy/terms placeholders, POPIA consent, password reset check, error/SEO pages, branded auth-email templates.
+1. **L3** is mostly done on branch `feat/l3-launch-readiness` (legal drafts, password reset, account deletion, branded auth emails, 404/error, robots/sitemap; 12/12 e2e suites pass). Left: Open Graph/page titles, an admin-assisted data-export tool, the OKLCH contrast and mobile-pass items from `gather_web_epic_roadmap.md`.
 2. **L4** versioned API for flows that are Server-Action-only today, then **L5** generated Supabase types and a shared data layer.
 3. **L6/L7** Expo app foundation and screens (Android emulator via Android Studio; iPhone via Expo Go).
 4. **L13** database part (PostGIS, near-me query, location forms). Map rendering waits for Mapbox.
@@ -116,23 +116,25 @@ Before anything moves, lock in what works.
 
 ### L3 — Launch readiness: web (M)
 Things the website needs before any real user (and which the stores also require):
-- [ ] **Account deletion**: in-app "Delete my account" on Profile, which Apple requires. Decide what happens to the account's data:
+- [x] **Account deletion** (done 2026-09-25, migration `0057_account_deletion`; Profile → Your data → Delete my account): in-app "Delete my account" on Profile, which Apple requires. Decide what happens to the account's data:
   - events they own: delete them, or transfer them?
   - businesses they own alone: hide or delete them.
   - reviews: anonymise them.
   - payment records: keep what's needed for the other party.
   - Finish with the Supabase Auth user deletion.
-- [ ] **Privacy policy** and **terms of use** as public pages, linked from the footer, register page and app stores.
+  - **What was built**: the database function `delete_account(uuid)` (service role only) deletes the person's events (and their bookings, chat, payments), removes them from every business team (a business left with nobody active is *hidden*, not deleted), re-points everything else they authored (messages, support comments, photos, audit fields) at a banned placeholder "Deleted user" account, then deletes their login and profile. Admins must be demoted first. **Reviews they left for vendors are kept** (decided 2026-09-25): `vendor_reviews.event_vendor_id` became nullable/`ON DELETE SET NULL`, the review stays on the vendor as by "Deleted user", and the vendor can still reply (migration `0058`; the reply policies now go through the review's own `vendor_id`). The placeholder is excluded from the admin Planners list and count.
+- [x] **Unused-file cleanup job** (done 2026-09-25, migration `0059`): deleting a row never deletes its uploaded file, so `orphaned_storage_objects(min_age)` lists files in the 7 buckets that no row references (older than the admin-editable "minutes before an unused file is deleted", default 60, on /admin/settings) and `cleanupOrphanedStorage()` removes them through the Storage API. Triggers: best-effort right after an account is deleted, the "Run cleanup now" button on /admin/settings, and the daily route `/api/cron/storage-cleanup` (`apps/web/vercel.json`, protected by `CRON_SECRET`). **Needs accounts to run on a schedule**: Vercel (cron) — set `CRON_SECRET` there. Locally use the admin button.
+- [x] **Privacy policy** (`/privacy`) and **terms of use** (`/terms`) as public pages, linked from register, login and the sitemap — done 2026-09-25 as **drafts** with a visible banner. **Before launch**: replace the placeholders in `packages/shared/src/legal-info.ts` (company name, address, information officer, emails), get the wording reviewed by a South African attorney, then set `LEGAL_IS_DRAFT = false`. Store listings need the `/privacy` URL (needs the domain).
 - [ ] **POPIA**:
-  - a consent line at sign-up
-  - a named information officer
-  - "what we store and why"
-  - a data export on request (can be admin-assisted to start)
-- [ ] Branded **Supabase Auth emails** (confirm sign-up, reset password, magic link) matching the new Gather email layout.
-- [ ] **Password reset flow**. Check whether it exists end to end, and build it if not.
-- [ ] Error monitoring (e.g. **Sentry**) for web and, later, mobile, plus Vercel Analytics or a privacy-friendly alternative.
-- [ ] Friendly **404 / error pages**, SEO basics (titles, Open Graph images, `robots.txt`, a sitemap for public events and vendors).
-- [ ] Re-run the security suites (exploits, stranger sweep) against **QA**, not just local.
+  - [x] a consent line at sign-up (register page: agree to terms, accept privacy policy)
+  - [ ] a named information officer *(placeholder in `legal-info.ts`; Andre to supply, and register with the Information Regulator if required)*
+  - [x] "what we store and why" (in the privacy policy)
+  - [ ] a data export on request — for now by email to the privacy address (mentioned on Profile and in the policy); an admin-assisted export tool is still to do
+- [x] Branded **Supabase Auth emails** (confirm sign-up, reset password, magic link, change email) — done 2026-09-25. Generated from the shared email layout by `npm run auth-emails` into `supabase/templates/*.html`, used by local Supabase via `config.toml`. **On hosted QA/prod (needs the Supabase accounts) paste each file into Auth → Email Templates**, and use Resend as the custom SMTP sender.
+- [x] **Password reset flow** — did not exist; built 2026-09-25: `/forgot-password` → branded email → `/auth/confirm` (also used for sign-up confirmation links) → `/reset-password`. Same answer whether or not the address has an account. Tested end to end through Mailpit.
+- [ ] *(needs accounts: Sentry, Vercel)* Error monitoring (e.g. **Sentry**) for web and, later, mobile, plus Vercel Analytics or a privacy-friendly alternative.
+- [x] Friendly **404 / error pages**, `robots.txt` and a sitemap of verified vendors and public published events — done 2026-09-25. Still to do: per-page titles and Open Graph images for public vendor/event pages.
+- [ ] *(needs accounts: Supabase QA)* Re-run the security suites (exploits, stranger sweep) against **QA**, not just local.
 - [ ] Close the open items in `gather_web_epic_roadmap.md`: the OKLCH contrast failures, a real mobile-device pass, and the payments decision (Stripe was never wired; today tracking is manual).
 
 ### L4 — API for the native apps (M)
@@ -341,6 +343,8 @@ To add, when each epic arrives:
 - **L13**: nothing to install; just a Mapbox account and tokens (one set for QA, one for production).
 
 ## Progress log
+
+- **2026-09-25**: **L3 mostly done** (no accounts needed): password reset, account deletion (`delete_account`), draft privacy policy/terms with POPIA consent line, branded Auth emails, 404/error pages, robots + sitemap. Two new e2e suites (account deletion; launch readiness). Local Supabase `site_url`/redirect allow-list now `http://localhost:3000`.
 
 - **2026-09-25**: **L2 no-account half done** on `chore/l2-seed-and-ci`: migration runner + manifest + fingerprint tool, seed script (reference/demo), `e2e` CI job. A database built from nothing by the runner and seed passes all 10 e2e/security suites. Account-gating analysis added above.
 
