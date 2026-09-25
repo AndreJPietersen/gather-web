@@ -14,5 +14,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    // e2e/suites.spec.ts is a Playwright file (npm run e2e), not a Vitest test.
+    exclude: ["e2e/**", "node_modules/**", ".next/**"],
   },
 });

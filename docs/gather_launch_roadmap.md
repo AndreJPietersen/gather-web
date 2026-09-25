@@ -4,6 +4,29 @@
 
 **Go-live is gated on Andre.** Nothing in this roadmap puts the site in front of real users. Every epic up to L11 prepares QA and production *without* opening sign-ups or announcing anything. L11 only happens when Andre says so. Until then, production (once it exists) runs with sign-ups paused, using the kill switch at `/admin/settings`.
 
+## ▶ Where to pick up (updated 2026-09-25)
+
+**State:** `main` and `develop` are both at `b629b2f` on GitHub. The local stack is fully migrated (0000–0056). Nothing is live; go-live waits for Andre (L11).
+
+**L0 is done in the working tree but NOT committed.** The work is on the branch `chore/l0-baseline` (created off `develop`):
+- the ten test suites, now proper Playwright tests: `npm run e2e` (all 10 pass), with a shared harness that fails on any check (`e2e/`, `playwright.config.ts`, `e2e/README.md`)
+- `.github/workflows/ci.yml`: typecheck, lint, unit tests and build on every PR and on pushes to `main`/`develop`. The same steps pass locally with the CI placeholder environment.
+- `.gitattributes` (line endings) and `.gitignore` (`/e2e/.output`)
+- lint now has **0 errors** (the old `admin/event-types` quotes, plus two inline-edit forms that called `setState` inside an effect; both forms are now covered by the smoke suite)
+- Vitest excludes `e2e/`
+- this roadmap
+
+**Next, in order:**
+1. **Commit L0** on `chore/l0-baseline` (Andre to OK), push it, and open a PR into `develop` so the CI workflow runs on GitHub for the first time. Watch that first run: it hasn't executed on GitHub yet, only locally.
+2. **Andre, in GitHub → Settings → Branches:** protect `main` (require a PR and the "checks" job to pass) and ideally `develop` too. `gh` isn't installed, so this can't be done from here.
+3. **Then L1** (monorepo restructure). It moves every file, so do it right after this merge, while nothing else is in flight.
+
+**Known gaps**
+- The e2e suites aren't in CI yet: they need a seeded database (test accounts, "Dr Dre DJ", categories, event types). Writing that seed script is part of L2 ("QA seed data"); once it exists, add an e2e job to `ci.yml`.
+- `npm audit`: **0 vulnerabilities in production dependencies**. 6 moderate ones exist in dev tooling only (vitest / esbuild / drizzle-kit chains), already present before Playwright was added; fixing them needs major-version upgrades, so revisit at a quiet moment.
+
+**Still waiting on Andre:** the 8 decisions in "Decisions still needed from Andre" below. None block L1.
+
 ## Context
 
 The website works end to end on the local stack. The goals now are:
@@ -48,14 +71,16 @@ Sizes are relative (S / M / L / XL), not time estimates. Epics are listed roughl
 
 ### L0 — Safe baseline & repo hygiene (S)
 Before anything moves, lock in what works.
-- [ ] Commit the current uncommitted work (about 118 changed files since `d418386 Stylings`). **Needs Andre's go-ahead.**
-- [ ] Branch strategy:
+- [x] Commit the current uncommitted work — done 2026-09-24 as `b629b2f` on `main` (146 files), pushed to GitHub.
+- [x] Branch strategy (`develop` created and pushed 2026-09-24):
   - `main` = production-ready.
   - `develop` = what QA runs.
   - Feature branches get pull requests (PRs) into `develop`.
 - [ ] GitHub branch protection on `main`: PR required, checks must pass.
-- [ ] **GitHub Actions CI** on every PR: `tsc`, `eslint`, `vitest`, `next build`. Fix the known pre-existing lint errors (`admin/event-types/page.tsx`) so CI starts green.
-- [ ] **Bring the end-to-end test suites into the repo.** The exploit suite, the stranger "who can edit" sweep, and the feature suites (business rules, moderation, staff, email) currently live only in a temporary scratchpad and would be lost. Move them into `e2e/` as Playwright tests runnable against local or QA.
+- [x] Add a `.gitattributes` so line endings stay consistent on Windows (git currently warns LF→CRLF on every commit).
+- [x] **GitHub Actions CI** (`.github/workflows/ci.yml`, added 2026-09-25) on every PR: `tsc`, `eslint`, `vitest`, `next build`. Fix the known pre-existing lint errors (`admin/event-types/page.tsx`) so CI starts green.
+- [x] **Bring the end-to-end test suites into the repo** (2026-09-25). `e2e/scripts/*.mjs` run as Playwright tests via `npm run e2e` (`e2e/suites.spec.ts`, `playwright.config.ts`), with a shared harness that fails on any check. `@playwright/test` is a dev dependency. Running them in CI needs seeded test data (see L2).
+  *Original note:* *Copied into `e2e/scripts/` on 2026-09-24 and verified running from there; still to convert to `@playwright/test` and wire into CI.* The exploit suite, the stranger "who can edit" sweep, and the feature suites (business rules, moderation, staff, email) currently live only in a temporary scratchpad and would be lost. Move them into `e2e/` as Playwright tests runnable against local or QA.
 
 ### L1 — Monorepo restructure (M)
 - [ ] npm workspaces + **Turborepo**. Layout:

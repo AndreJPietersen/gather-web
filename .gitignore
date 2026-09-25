@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Local dev/test account credentials — real (if throwaway) secrets, never committed.
 /TESTING.md
+
+# e2e screenshots / output
+/e2e/.output

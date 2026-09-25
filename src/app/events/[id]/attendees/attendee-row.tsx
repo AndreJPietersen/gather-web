@@ -40,9 +40,18 @@ export function AttendeeRow({ attendee, eventId, canEdit }: { attendee: Attendee
   const [state, formAction, pending] = useActionState(updateAttendeeDetails, initialState);
   const router = useRouter();
 
+  // Close the form when a save succeeds. Done during render (React's
+  // "adjust state when a value changes" pattern) rather than in the effect,
+  // which would call setState synchronously inside an effect. Each action
+  // result is a new object, so comparing it to the last one handled fires
+  // once per save. The refresh stays in the effect: it's a side effect.
+  const [handledState, setHandledState] = useState(state);
+  if (state.success && handledState !== state) {
+    setHandledState(state);
+    setEditing(false);
+  }
   useEffect(() => {
     if (state.success) {
-      setEditing(false);
       router.refresh();
     }
   }, [state.success, router]);

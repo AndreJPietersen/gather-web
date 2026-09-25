@@ -156,7 +156,7 @@ export default async function EventAttendeesPage({ params, searchParams }: PageP
             </div>
           ))}
           <p className="mt-1 text-[11px] font-semibold text-text-muted">
-            Counts include each attendee's additional guests.
+            Counts include each attendee&apos;s additional guests.
           </p>
         </div>
       </details>
