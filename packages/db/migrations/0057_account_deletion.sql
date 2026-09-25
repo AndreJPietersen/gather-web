@@ -46,7 +46,14 @@ BEGIN
     RAISE EXCEPTION 'An admin account must have its admin access removed before it can be deleted';
   END IF;
 
-  -- Their own events go, with everything hanging off them.
+  -- Their own events go, with everything hanging off them. Bookings do not
+  -- cascade from events, so they are removed first (which takes their chat,
+  -- payments and quotes with them); a review of the vendor is kept, detached
+  -- from the booking. A support case that mentions the event stays, without it.
+  UPDATE public.support_cases SET related_event_id = NULL
+  WHERE related_event_id IN (SELECT id FROM public.events WHERE owner_id = p_user);
+  DELETE FROM public.event_vendors
+  WHERE event_id IN (SELECT id FROM public.events WHERE owner_id = p_user);
   DELETE FROM public.events WHERE owner_id = p_user;
   DELETE FROM public.event_collaborators WHERE user_id = p_user;
   DELETE FROM public.event_vendor_chat_reads WHERE user_id = p_user;

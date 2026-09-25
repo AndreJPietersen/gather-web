@@ -75,3 +75,15 @@ export async function getMaxEmailRecipients(): Promise<number> {
     .maybeSingle<{ max_email_recipients: number }>();
   return data?.max_email_recipients ?? 500;
 }
+
+// How old (in minutes) an unreferenced uploaded file must be before the
+// storage cleanup job deletes it (/admin/settings).
+export async function getStorageCleanupMinAgeMinutes(): Promise<number> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("app_settings")
+    .select("storage_cleanup_min_age_minutes")
+    .eq("id", true)
+    .maybeSingle<{ storage_cleanup_min_age_minutes: number }>();
+  return data?.storage_cleanup_min_age_minutes ?? 60;
+}

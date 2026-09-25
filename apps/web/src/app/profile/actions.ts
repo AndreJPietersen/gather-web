@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { setSuppressed } from "@/lib/email/suppressions";
 import { createServiceClient } from "@/lib/supabase/service";
+import { cleanupOrphanedStorage } from "@/lib/storage-cleanup";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -166,5 +167,8 @@ export async function deleteMyAccount(_prev: DeleteAccountState, formData: FormD
   }
 
   await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  // Their uploads are now unreferenced; sweep what is old enough now, the
+  // daily job gets the rest. A failure here must not undo the deletion.
+  await cleanupOrphanedStorage().catch(() => {});
   redirect("/?deleted=1");
 }

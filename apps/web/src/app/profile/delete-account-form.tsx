@@ -17,7 +17,8 @@ export function DeleteAccountForm() {
         <ul className="list-disc pl-5 text-xs font-semibold text-text-muted">
           <li>Your events, guest lists, tasks and budgets are deleted.</li>
           <li>You leave every business team. A business with no one left on it is hidden.</li>
-          <li>Messages and other things you wrote for other people stay, shown as &quot;Deleted user&quot;.</li>
+          <li>Reviews you left for vendors, and messages you wrote for other people, stay, shown as &quot;Deleted user&quot;.</li>
+          <li>Photos and files you uploaded are removed.</li>
           <li>This can&apos;t be undone.</li>
         </ul>
         <Input name="confirm" placeholder="Type DELETE to confirm" autoComplete="off" required />

@@ -7,12 +7,13 @@ import {
   getMaxEmailRecipients,
   getMaxOwnedBusinesses,
   getRegistrationEnabled,
+  getStorageCleanupMinAgeMinutes,
   getWriteRateLimits,
 } from "@/lib/app-settings";
 import { getWatchlistThresholds } from "@/lib/admin/watchlist";
 import { setRegistrationEnabled } from "./actions";
 import { setFeaturedEnabled } from "../featured/actions";
-import { LimitsForm, WatchlistThresholdsForm, WriteRateLimitsForm } from "./settings-forms";
+import { LimitsForm, StorageCleanupCard, WatchlistThresholdsForm, WriteRateLimitsForm } from "./settings-forms";
 
 // Every operational knob in one place: app-wide switches, the listing
 // limits, the watchlist thresholds and the per-person hourly write limits.
@@ -20,7 +21,7 @@ import { LimitsForm, WatchlistThresholdsForm, WriteRateLimitsForm } from "./sett
 // are enforced by database triggers, so a change here applies immediately.
 export default async function AdminSettingsPage() {
   await requireAdmin();
-  const [registrationEnabled, featuredEnabled, listingDailyLimit, maxOwned, thresholds, rateLimits, maxEmailRecipients] = await Promise.all([
+  const [registrationEnabled, featuredEnabled, listingDailyLimit, maxOwned, thresholds, rateLimits, maxEmailRecipients, storageCleanupMinAge] = await Promise.all([
     getRegistrationEnabled(),
     getFeaturedEnabled(),
     getListingDailyLimit(),
@@ -28,6 +29,7 @@ export default async function AdminSettingsPage() {
     getWatchlistThresholds(),
     getWriteRateLimits(),
     getMaxEmailRecipients(),
+    getStorageCleanupMinAgeMinutes(),
   ]);
 
   return (
@@ -57,11 +59,13 @@ export default async function AdminSettingsPage() {
       />
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
-        <LimitsForm maxOwnedBusinesses={maxOwned} listingDailyLimit={listingDailyLimit} maxEmailRecipients={maxEmailRecipients} />
+        <LimitsForm maxOwnedBusinesses={maxOwned} listingDailyLimit={listingDailyLimit} maxEmailRecipients={maxEmailRecipients} storageCleanupMinAgeMinutes={storageCleanupMinAge} />
         <WatchlistThresholdsForm t={thresholds} />
       </div>
 
       <WriteRateLimitsForm limits={rateLimits} />
+
+      <StorageCleanupCard />
     </div>
   );
 }

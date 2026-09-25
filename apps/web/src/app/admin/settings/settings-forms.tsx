@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { WatchlistThresholds } from "@/lib/admin/watchlist";
 import type { WriteRateLimit } from "@/lib/app-settings";
-import { saveLimits, saveWatchlistThresholds, saveWriteRateLimits, type SettingsFormState } from "./actions";
+import { runStorageCleanup, saveLimits, saveWatchlistThresholds, saveWriteRateLimits, type SettingsFormState, type StorageCleanupState } from "./actions";
 
 const initial: SettingsFormState = {};
 
@@ -58,10 +58,12 @@ export function LimitsForm({
   maxOwnedBusinesses,
   listingDailyLimit,
   maxEmailRecipients,
+  storageCleanupMinAgeMinutes,
 }: {
   maxOwnedBusinesses: number;
   listingDailyLimit: number;
   maxEmailRecipients: number;
+  storageCleanupMinAgeMinutes: number;
 }) {
   const [state, action, pending] = useActionState(saveLimits, initial);
   return (
@@ -75,6 +77,7 @@ export function LimitsForm({
       <NumberField name="max_owned_businesses" label="Businesses one person can own" value={maxOwnedBusinesses} />
       <NumberField name="listing_daily_limit" label="Listings one person can add per 24 hours" value={listingDailyLimit} />
       <NumberField name="max_email_recipients" label="Most recipients per admin email send" value={maxEmailRecipients} />
+      <NumberField name="storage_cleanup_min_age_minutes" label="Minutes before an unused uploaded file is deleted" value={storageCleanupMinAgeMinutes} min={5} />
     </SettingsCard>
   );
 }
@@ -117,5 +120,25 @@ export function WriteRateLimitsForm({ limits }: { limits: WriteRateLimit[] }) {
         ))}
       </div>
     </SettingsCard>
+  );
+}
+
+export function StorageCleanupCard() {
+  const [state, action, pending] = useActionState(async () => runStorageCleanup(), {} as StorageCleanupState);
+  return (
+    <Card className="flex flex-col gap-3">
+      <h2 className="font-display text-lg font-semibold text-ink">Unused files</h2>
+      <p className="text-xs font-semibold text-text-muted">
+        Deleting an event, photo or account doesn&apos;t delete the uploaded file, so a daily job removes files nothing points at any more
+        (once they&apos;re older than the limit above). Run it now to check or to clear up straight away.
+      </p>
+      <form action={action}>
+        <Button type="submit" variant="secondary" disabled={pending}>
+          {pending ? "Cleaning…" : "Run cleanup now"}
+        </Button>
+      </form>
+      {state.message && <p className="text-sm font-semibold text-ink">{state.message}</p>}
+      {state.error && <p className="text-sm font-semibold text-primary">{state.error}</p>}
+    </Card>
   );
 }

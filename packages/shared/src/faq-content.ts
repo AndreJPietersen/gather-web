@@ -141,7 +141,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       {
         question: "How do I delete my account, and what happens to my data?",
         answer:
-          "Open your Profile tab, scroll to \"Your data\" and choose \"Delete my account\". Your events, guest lists, tasks and budgets are deleted, and you leave every business team (a business with no one left on it is hidden). Messages and other things you wrote for other people stay, but show as \"Deleted user\". It can't be undone. To get a copy of your information first, email us — the privacy policy has the address.",
+          "Open your Profile tab, scroll to \"Your data\" and choose \"Delete my account\". Your events, guest lists, tasks and budgets are deleted, and you leave every business team (a business with no one left on it is hidden). Reviews you left for vendors, and messages and other things you wrote for other people, stay but show as \"Deleted user\". Photos and files you uploaded are removed from storage. It can't be undone. To get a copy of your information first, email us — the privacy policy has the address.",
       },
       {
         question: "Can't find an answer here?",

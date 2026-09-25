@@ -14,6 +14,7 @@ const SUITES: { name: string; file: string }[] = [
   { name: "security: stranger can't edit anything", file: "security-stranger-sweep.mjs" },
   { name: "security: API exploit attempts", file: "security-exploits.mjs" },
   { name: "feature: account deletion (database)", file: "account-deletion.mjs" },
+  { name: "feature: unused-file cleanup", file: "storage-cleanup.mjs" },
   { name: "feature: launch readiness (legal, reset, delete)", file: "launch-readiness.mjs" },
   { name: "smoke: core pages and forms", file: "smoke.mjs" },
   { name: "feature: featured vendors", file: "featured-vendors.mjs" },

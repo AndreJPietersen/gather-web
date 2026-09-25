@@ -407,6 +407,20 @@
       "when": 1790325901525,
       "tag": "0057_account_deletion",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1790327685926,
+      "tag": "0058_reviews_survive_account_deletion",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1790327737565,
+      "tag": "0059_storage_cleanup",
+      "breakpoints": true
     }
   ]
 }
