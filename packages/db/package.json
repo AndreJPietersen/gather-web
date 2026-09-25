@@ -1,0 +1,22 @@
+{
+  "name": "@gather/db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Drizzle schema (tables, RLS policies) and SQL migrations for Gather's Postgres database.",
+  "exports": {
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^5"
+  }
+}

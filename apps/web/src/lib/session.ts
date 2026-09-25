@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { vendorTeamMembers, vendors } from "@/db/schema";
+import type { vendorTeamMembers, vendors } from "@gather/db/schema";
 
 export type VendorRole = (typeof vendorTeamMembers.$inferSelect)["role"];
 
