@@ -6,17 +6,22 @@
 
 ## ▶ Where to pick up (updated 2026-09-25)
 
-**State:** L0 is merged into `develop`. **L1 (monorepo) is finished on the branch `chore/l1-monorepo`** — four commits (A: `apps/web`, B: `packages/db`, C: `packages/shared`, D: tokens + Turborepo + docs), verified, but **not yet merged**. `main`/`develop` are protected: changes go by pull request and need the `checks` job green.
+**State:** L0 and L1 (monorepo) are merged into `develop`. Andre has **no real third-party accounts yet**, so the plan is to build everything that can be built without them first, and to flag exactly where an account becomes necessary (see "Real accounts: what needs them, and when" below). `main`/`develop` are protected: changes go by pull request and need the `checks` job green.
 
-**Next, in order:**
-1. **Merge L1**: push the branch, open a pull request into `develop`, wait for CI, merge. (Andre.) After merging, everyone runs `npm install` once, and moves any local `.env.local` to `apps/web/.env.local` if it's still at the root.
-2. **L2 — Environments** (QA + production Supabase, Vercel with root `apps/web`, the migration pipeline, the seed script that also unlocks running the e2e suites in CI). Needs Andre for accounts and the decisions listed below.
-3. In parallel where possible: **L3** launch readiness (account deletion, privacy/terms, POPIA), **L4** API for the native apps, **L13** location.
+**Done without accounts (branch `chore/l2-seed-and-ci`):** one migration runner for both migration folders (`npm run db:migrate`), the seed script (`db:seed:reference` / `db:seed:demo`), and an `e2e` CI job that builds a fresh database, seeds it and runs all ten Playwright suites. Verified locally against a from-scratch database: 10/10 suites pass.
 
-**Still waiting on Andre:** the 8 decisions in "Decisions still needed from Andre" below. L2 needs at least the domain, the Supabase region and the developer-account choice.
+**Next, in order (no accounts needed):**
+1. **L3** launch readiness: account deletion, privacy/terms placeholders, POPIA consent, password reset check, error/SEO pages, branded auth-email templates.
+2. **L4** versioned API for flows that are Server-Action-only today, then **L5** generated Supabase types and a shared data layer.
+3. **L6/L7** Expo app foundation and screens (Android emulator via Android Studio; iPhone via Expo Go).
+4. **L13** database part (PostGIS, near-me query, location forms). Map rendering waits for Mapbox.
+
+**In parallel, Andre (admin, long lead times):** decide individual vs organisation for the developer accounts (an organisation needs a D-U-N-S number, 1–2 weeks); pick the domain and store app name; start Apple/Google enrolment; create the free accounts (Supabase, Vercel, Expo, Mapbox, Resend, Cloudflare). **Do not add a payment method to any free account — tell Claude if one asks for a card.**
+
+**Still waiting on Andre:** the decisions in "Decisions still needed from Andre" below. L2's online parts need at least the domain, the Supabase region and the developer-account choice.
 
 **Known gaps**
-- The e2e suites aren't in CI yet: they need a seeded database (test accounts, "Dr Dre DJ", categories, event types) — part of L2.
+- The `e2e` CI job is new and not yet a required check. Make it required in the GitHub rulesets after it has been green on GitHub for a while.
 - `npm audit`: 0 vulnerabilities in production dependencies; 6 moderate in dev tooling only (vitest / esbuild / drizzle-kit chains), present before L0.
 
 ## Context
@@ -89,9 +94,8 @@ Before anything moves, lock in what works.
 - [ ] Create two Supabase projects, **gather-qa** and **gather-prod**.
   - Region: closest to South Africa. Check Cape Town availability; otherwise Europe (Frankfurt or Ireland).
   - Plans: production on **Pro** (daily backups, no pausing), QA on Free.
-- [ ] One **migration procedure** for both migration folders (`supabase/migrations` raw SQL, which includes the storage buckets, and `src/db/migrations` Drizzle). Document it in the architecture doc. Run it through a GitHub Action:
-  - QA migrates automatically on merge to `develop`.
-  - Production migrates on merge to `main`, **with a manual approval step**.
+- [x] One **migration procedure** for both migration folders (`supabase/migrations` raw SQL and `packages/db/migrations` Drizzle) — **done 2026-09-25**. The two folders depend on each other, so neither `drizzle-kit migrate` nor `supabase db reset` can build an empty database. `packages/db/scripts/migrate.mjs` applies both in the frozen order listed in `packages/db/manifest.mjs`, records history in both native trackers, refuses non-local databases without `--remote`, and has `--status`, `--dry-run` and `--adopt` (record a hand-migrated database without running anything). Documented in the architecture doc.
+  - [ ] *(needs accounts: Supabase QA/prod)* A GitHub Action that runs it against the hosted databases: QA migrates automatically on merge to `develop`; production on merge to `main`, **with a manual approval step**.
 - [ ] Supabase Auth settings per project:
   - site URL and redirect URLs
   - email confirmations **on**
@@ -104,9 +108,11 @@ Before anything moves, lock in what works.
   - **Preview** environment (every branch/PR) → gather-qa.
   - Environment variables per environment: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_SITE_URL`, `EMAIL_UNSUBSCRIBE_SECRET`.
   - Vercel **Pro**, because commercial use isn't allowed on Hobby.
-- [ ] **QA seed data**: the service categories, event types and email templates that migrations don't seed, plus realistic demo planners, vendors, events and bookings, and fixed QA accounts (planner, vendor owner/manager/staff, admin).
-- [ ] **Production bootstrap**: reference data only (no demo data), the first admin account flagged by hand, **sign-ups paused**, **featured vendors off**.
-- [ ] Domain: buy it, point it at Vercel, set up the Resend sending domain (SPF/DKIM/DMARC), and use a `qa.` subdomain for QA.
+- [x] **Seed script** — done 2026-09-25 (`packages/db/scripts/seed.mjs`). `reference` mode (20 service categories, 20 event types, 144 mappings; safe for production) and `demo` mode (8 fixed accounts with password `GatherTest123!`, 8 businesses incl. Dr Dre DJ, 3 live featured placements, 2 planner events; refuses to run unless `GATHER_ENV` is local/ci/qa). Idempotent. Email templates, prices and limits already come from migrations.
+- [x] **e2e in CI** — done 2026-09-25 (`e2e` job in `.github/workflows/ci.yml`: local Supabase, runner, seed, build, start, `npm run e2e`). Not a required check yet.
+- [ ] *(needs accounts: Supabase QA)* run the demo seed against the hosted QA project.
+- [ ] *(needs accounts: Supabase prod)* **Production bootstrap**: reference data only (no demo data), the first admin account flagged by hand, **sign-ups paused**, **featured vendors off**.
+- [ ] *(needs accounts: domain, Resend)* Domain: buy it, point it at Vercel, set up the Resend sending domain (SPF/DKIM/DMARC), and use a `qa.` subdomain for QA.
 
 ### L3 — Launch readiness: web (M)
 Things the website needs before any real user (and which the stores also require):
@@ -270,6 +276,26 @@ L3 and L4–L7 can run in parallel once L2 exists. L9 starts as soon as there's 
 7. **Location in v1?** Should "vendors near you" (L13) be in the first release, or follow shortly after? Recommendation: in v1 for the web and apps, because it's a strong reason for a planner to use Gather over a search engine. Live location sharing stays out of v1.
 8. **Maps in the apps**: full Mapbox maps (a consistent look everywhere, more setup) or Mapbox search plus the phone's own maps (cheaper, feels native). Decide at L6.
 
+## Real accounts: what needs them, and when
+
+Andre has no real accounts yet (as of 2026-09-25). This is where each one first becomes **blocking**. Everything not listed here can be built and tested on Andre's PC (local Supabase in Docker, GitHub Actions for CI, Expo Go / Android emulator).
+
+| Account | Cost | First blocks | What still works without it |
+|---|---|---|---|
+| **Supabase** (hosted QA + prod) | Free for QA; Pro ~US$25/mo for prod | An online QA site, outside testers, running migrations/seed on real databases (L2 online parts) | Everything, against the local stack |
+| **Vercel** | Pro US$20/mo (commercial use) | A public QA/preview site for other people to open (L2) | `npm run dev` / `dev:mobile` on the LAN |
+| **Domain** | ~US$10–20/yr | Deep links, the Resend sending domain, store URLs, `qa.` subdomain | Local development |
+| **Resend** (needs verified domain) | Free ~100 emails/day | Real email delivery, custom SMTP for Auth emails | Mailpit shows every email locally |
+| **Cloudflare Turnstile** | Free | CAPTCHA on sign-up (L2 auth hardening) | Sign-up works without it locally |
+| **Mapbox** | Free tier | Real maps and geocoding, mid-L13 | PostGIS schema, near-me query and forms (L13 DB part) |
+| **Expo / EAS** | Free tier | Cloud builds; **dev builds**, which native Mapbox maps require | Expo Go, Android emulator |
+| **Apple Developer** | US$99/yr | TestFlight, iOS device builds beyond Expo Go, iOS push, App Store (L8, L9, L10). **Organisation** enrolment needs a D-U-N-S number: 1–2 weeks | iPhone via Expo Go |
+| **Google Play Console** | US$25 once | Play internal/closed testing, Play Store (L9, L10). Personal accounts need a **closed test with 12 testers for 14 days** before production. Firebase is needed for Android push | Android emulator and sideloaded builds |
+
+**Long-lead-time admin to start first:** individual vs organisation (decides D-U-N-S), the domain and store app name, Apple/Google enrolment. **Free accounts: do not add a payment method.**
+
+**Epic by epic:** L3, L4, L5, L6, L7 and the database half of L13 need **no accounts**. L2's online half, L8 push notifications, L9 external testers, L10 and L11 need them. Map rendering in L13 needs Mapbox plus an Expo dev build.
+
 ## Accounts and running costs (approximate, 2026)
 
 | Service | Cost | Needed from |
@@ -315,6 +341,8 @@ To add, when each epic arrives:
 - **L13**: nothing to install; just a Mapbox account and tokens (one set for QA, one for production).
 
 ## Progress log
+
+- **2026-09-25**: **L2 no-account half done** on `chore/l2-seed-and-ci`: migration runner + manifest + fingerprint tool, seed script (reference/demo), `e2e` CI job. A database built from nothing by the runner and seed passes all 10 e2e/security suites. Account-gating analysis added above.
 
 - **2026-09-24**: added **L13 Location (Mapbox + PostGIS)** at Andre's request ("vendors near you" and location sharing), with Mapbox costs. Today events only have a free-text `location`, and vendors have no location at all. PostGIS is available in Supabase but not yet enabled.
 - **2026-09-24**: roadmap written. Approach agreed: Expo, one monorepo, Supabase QA + production, Vercel for web, EAS for apps. Go-live deliberately not scheduled; it waits for Andre.
