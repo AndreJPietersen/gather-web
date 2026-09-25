@@ -1,3 +1,4 @@
+import { DELETED_USER_ID } from "@gather/shared/legal-info";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Card, LinkCard } from "@/components/ui/card";
@@ -19,7 +20,7 @@ export default async function AdminDashboardPage() {
 
   const [{ count: plannerCount }, { count: vendorCount }, { count: eventCount }, { count: openCaseCount }, { count: businessRequestCount }, { data: recentActivity }] =
     await Promise.all([
-      service.from("profiles").select("id", { count: "exact", head: true }),
+      service.from("profiles").select("id", { count: "exact", head: true }).neq("id", DELETED_USER_ID),
       service.from("vendors").select("id", { count: "exact", head: true }),
       service.from("events").select("id", { count: "exact", head: true }),
       service.from("support_cases").select("id", { count: "exact", head: true }).in("status", ["open", "pending"]),

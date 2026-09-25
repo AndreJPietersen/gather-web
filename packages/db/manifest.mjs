@@ -88,4 +88,5 @@ export const MANIFEST = [
   "drizzle:0054_staff_storage_and_limits.sql",
   "drizzle:0055_admin_email.sql",
   "drizzle:0056_admin_email_seed_and_audience.sql",
+  "drizzle:0057_account_deletion.sql",
 ];

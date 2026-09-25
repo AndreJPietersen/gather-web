@@ -28,7 +28,8 @@
     "db:migrate:status": "npm run db:migrate:status -w @gather/db",
     "db:fingerprint": "npm run db:fingerprint -w @gather/db --",
     "db:seed:reference": "npm run db:seed:reference -w @gather/db",
-    "db:seed:demo": "npm run db:seed:demo -w @gather/db"
+    "db:seed:demo": "npm run db:seed:demo -w @gather/db",
+    "auth-emails": "tsx scripts/generate-auth-emails.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

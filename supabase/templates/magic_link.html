@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Your Gather sign-in link</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f0fc;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#f1f0fc;">Tap the button to sign in. The link works once and expires soon.&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f1f0fc;">
+<tr><td align="center" style="padding:28px 12px;">
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+    <tr><td bgcolor="#b64ebd" style="background:#b64ebd;background-image:linear-gradient(135deg,#b64ebd,#d85891);border-radius:24px 24px 0 0;padding:26px 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td style="vertical-align:middle;padding-right:12px;"><img src="{{ .SiteURL }}/icon-512.png" width="44" height="44" alt="" style="display:block;border:0;border-radius:12px;"></td>
+        <td style="vertical-align:middle;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:30px;font-weight:700;color:#ffffff;letter-spacing:0.3px;">Gather</td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="background:#ffffff;border-radius:0 0 24px 24px;padding:36px 32px 30px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+      <h1 style="margin:0 0 18px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:26px;line-height:1.25;font-weight:800;color:#1a182a;">Sign in to Gather</h1>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#1f1d2d;">Tap the button to sign in. The link works once and expires soon.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 8px;">
+  <tr><td align="center" bgcolor="#b64ebd" style="border-radius:999px;background:#b64ebd;background-image:linear-gradient(135deg,#b64ebd,#d85891);">
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=magiclink&amp;next=/" style="display:inline-block;padding:14px 30px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:16px;font-weight:800;color:#ffffff;text-decoration:none;border-radius:999px;">Sign in</a>
+  </td></tr>
+</table>
+    </td></tr>
+    <tr><td style="padding:22px 20px 8px;text-align:center;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;font-size:12px;line-height:1.6;color:#6e6d7a;">
+      You&#39;re getting this because a sign-in link was requested for your Gather account. If that wasn&#39;t you, ignore this email.<br>
+      Sent by <a href="{{ .SiteURL }}" style="color:#b64ebd;font-weight:700;text-decoration:none;">Gather</a> — plan it, share it, celebrate it.
+      
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import { DELETED_USER_ID } from "@gather/shared/legal-info";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Card, LinkCard } from "@/components/ui/card";
@@ -18,7 +19,8 @@ export default async function AdminPlannersPage({ searchParams }: PageProps<"/ad
   const query = typeof q === "string" ? q.trim() : "";
 
   const service = createServiceClient();
-  let plannersQuery = service.from("profiles").select("id, display_name, phone, is_admin, created_at");
+  // The "Deleted user" placeholder (migration 0057) is not a real person.
+  let plannersQuery = service.from("profiles").select("id, display_name, phone, is_admin, created_at").neq("id", DELETED_USER_ID);
   if (query) {
     plannersQuery = plannersQuery.ilike("display_name", `%${query}%`);
   }
