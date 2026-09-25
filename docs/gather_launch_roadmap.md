@@ -6,9 +6,17 @@
 
 ## ▶ Where to pick up (updated 2026-09-25)
 
-**State:** L0 and L1 (monorepo) are merged into `develop`. Andre has **no real third-party accounts yet**, so the plan is to build everything that can be built without them first, and to flag exactly where an account becomes necessary (see "Real accounts: what needs them, and when" below). `main`/`develop` are protected: changes go by pull request and need the `checks` job green.
+**State (2026-09-25, end of the no-accounts phase):** epics **L0–L5 are built**: repo hygiene, monorepo, migration runner + seed + CI e2e, launch readiness (password reset, account deletion, draft legal pages, branded auth emails, 404/SEO, unused-file cleanup), the native-app API, and the typed data layer. Andre has **no real third-party accounts yet**. `main`/`develop` are protected: changes go by pull request and need the `checks` job green. **Merge order for the last two branches: `fix/bundle-fonts` (fixes a CI build failure on GitHub), then `feat/l5-typed-data-layer`.**
 
-**Done without accounts (branch `chore/l2-seed-and-ci`):** one migration runner for both migration folders (`npm run db:migrate`), the seed script (`db:seed:reference` / `db:seed:demo`), and an `e2e` CI job that builds a fresh database, seeds it and runs all ten Playwright suites. Verified locally against a from-scratch database: 10/10 suites pass.
+**Verified at the end of this phase**: typecheck (4 workspaces), unit tests, lint (0 errors), production build; **14 end-to-end/security suites pass**; a database built from nothing by `npm run db:migrate` (all 76 migrations) plus the seeds has a schema fingerprint **identical** to the long-lived local database, and `db:types:check` passes on it; `npm audit` shows 0 production vulnerabilities.
+
+**When the accounts arrive — runbook, in this order:**
+1. **Supabase** (QA project, then production): create the project (region decision), then `DATABASE_URL=<direct connection string> npm run db:migrate -- --remote`, `db:seed:reference` (production) or `db:seed:reference` + `db:seed:demo` with `GATHER_ENV=qa` (QA). Paste the four `supabase/templates/*.html` auth emails into Auth → Email Templates; set Site URL and redirect URLs; **production: keep sign-ups paused and featured off** (`/admin/settings`). Flag the first admin by hand. Then add the GitHub Action that migrates QA on merge to `develop` and production on `main` with manual approval (L2).
+2. **Vercel**: project root `apps/web`; environment variables per environment (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `EMAIL_FROM`, `RESEND_API_KEY`, `EMAIL_SITE_URL`, `EMAIL_UNSUBSCRIBE_SECRET`, `CRON_SECRET`); `apps/web/vercel.json` already schedules the daily unused-file cleanup.
+3. **Domain + Resend**: verified sending domain (SPF/DKIM/DMARC), custom SMTP in Supabase Auth, `qa.` subdomain.
+4. **Re-run the security suites against QA** (`E2E_BASE_URL`, `E2E_DB_URL` and the Supabase variables point the suites at another environment), then make the `e2e` CI job a required check.
+5. **Legal**: fill in the placeholders in `packages/shared/src/legal-info.ts`, lawyer review, set `LEGAL_IS_DRAFT = false`.
+6. **Sentry / analytics, Cloudflare Turnstile** (L3/L2), then **Expo/EAS, Apple, Google** for the apps (L6–L10), **Mapbox** for L13.
 
 **Next, in order (no accounts needed):**
 1. **L6/L7** Expo app foundation and screens (Android emulator via Android Studio; iPhone via Expo Go). Everything the app needs is ready: the database with RLS, `/api/v1` (L4), and typed `createGatherClient` (L5).
@@ -22,6 +30,7 @@
 **Still waiting on Andre:** the decisions in "Decisions still needed from Andre" below. L2's online parts need at least the domain, the Supabase region and the developer-account choice.
 
 **Known gaps**
+- Local phone testing (`npm run dev:mobile`): see the checklist in `README.md` — the server must be running, same Wi-Fi, LAN IP in `.env.local`, firewall. Password-reset emails link to the Supabase Site URL (localhost locally).
 - The `e2e` CI job is new and not yet a required check. Make it required in the GitHub rulesets after it has been green on GitHub for a while.
 - `npm audit`: 0 vulnerabilities in production dependencies; 6 moderate in dev tooling only (vitest / esbuild / drizzle-kit chains), present before L0.
 
