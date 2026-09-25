@@ -31,6 +31,7 @@ Import shared code as `@gather/shared/<module>` (e.g. `@gather/shared/utils`, `@
 | `npm run db:start` / `db:stop` | the local Supabase stack |
 | `npm run db:generate` | write a new Drizzle migration after changing `packages/db/src/schema.ts` (then add it to `packages/db/manifest.mjs`) |
 | `npm run db:migrate` / `db:migrate:status` | apply **both** migration folders to a database, in order (`packages/db/scripts/migrate.mjs`); `--adopt` records a hand-migrated database without running anything |
+| `npm run db:types` | regenerate `packages/db/src/database.types.ts` from the local database (after every migration) |
 | `npm run db:seed:reference` / `db:seed:demo` | reference data (safe everywhere) / fake demo data (local, CI, QA only) |
 | `npm run e2e` / `e2e:security` | the end-to-end and security suites (`e2e/README.md`) |
 
@@ -72,11 +73,14 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Testing on a real phone (this is a mobile-first app)
 
-Run `npm run dev:mobile` instead (binds to all network interfaces), find your PC's local IP (`ipconfig`, look under your Wi-Fi adapter), then visit `http://<that-ip>:3000` from a phone on the same Wi-Fi. If that's blocked (cellular data, a locked-down network, or a flow needing real HTTPS) use a tunnel like Cloudflare Tunnel or ngrok to get a public `https://` URL to your local server instead.
+Run `npm run dev:mobile` instead (binds to all network interfaces), find your PC's local IP (`ipconfig`, look under your Wi-Fi adapter), then visit `http://<that-ip>:3000` from a phone on the same Wi-Fi.
 
-You can start editing the home page in `apps/web/src/app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Checklist if the phone can't connect:
+- The dev server must be **running** (`npm run dev:mobile` in a terminal that stays open) and the phone on the **same Wi-Fi** as the PC (not mobile data, not a guest network; some routers isolate guest devices from each other).
+- `NEXT_PUBLIC_SUPABASE_URL` in `apps/web/.env.local` must use the PC's **LAN IP** (`http://192.168.x.y:54321`), not `127.0.0.1`: the phone's own "127.0.0.1" is the phone. If your router hands out a new IP, update it.
+- Windows Firewall must allow inbound connections for Node.js on your Private network (the first-run popup; or *Windows Security → Firewall → Allow an app*).
+- Password-reset and confirmation emails link to the Supabase **Site URL** (`site_url` in `supabase/config.toml`, `http://localhost:3000`). On a phone, open the link after swapping the host for the PC's IP, or temporarily set `site_url` to it and restart Supabase.
+- If it's still blocked, or a flow needs real HTTPS, use a tunnel like Cloudflare Tunnel or ngrok to get a public `https://` URL to your local server instead.
 
 ## Learn More
 

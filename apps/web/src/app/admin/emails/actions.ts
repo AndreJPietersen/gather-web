@@ -172,7 +172,7 @@ async function resolveAudience(a: Audience): Promise<Recipient[]> {
     a.type === "user"
       ? { p_segment: "user", p_target_id: a.userId }
       : { p_segment: a.segment, p_target_id: a.vendorId ?? null, p_days: a.days ?? null };
-  const { data } = await service.rpc("admin_email_audience", args);
+  const { data } = await service.rpc("admin_email_audience", args as { p_segment: string; p_target_id: string; p_days?: number });
   return ((data ?? []) as { user_id: string; email: string; display_name: string | null }[]).map((u) => ({
     userId: u.user_id,
     email: u.email,

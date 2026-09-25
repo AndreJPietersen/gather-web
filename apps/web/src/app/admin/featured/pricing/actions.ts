@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { logAdminAction } from "@/lib/admin/audit-log";
 import { createServiceClient } from "@/lib/supabase/service";
-import { FEATURE_DURATIONS, FEATURE_SPOTS } from "@gather/shared/feature-pricing";
+import { FEATURE_DURATIONS, FEATURE_SPOTS, type FeatureDuration, type FeatureSpot } from "@gather/shared/feature-pricing";
 
 export interface PricingFormState {
   error?: string;
@@ -38,7 +38,7 @@ export async function saveFeaturePrices(_prev: PricingFormState, formData: FormD
   for (const u of updates) {
     const { error } = await service
       .from("feature_prices")
-      .upsert({ spot: u.spot, duration: u.duration, amount: u.amount, updated_at: now }, { onConflict: "spot,duration" });
+      .upsert({ spot: u.spot as FeatureSpot, duration: u.duration as FeatureDuration, amount: u.amount, updated_at: now }, { onConflict: "spot,duration" });
     if (error) return { error: "Something went wrong saving the prices." };
   }
 

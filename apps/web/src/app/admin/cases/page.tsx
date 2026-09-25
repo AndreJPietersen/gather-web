@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin/require-admin";
+import type { Database } from "@gather/db/database.types";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Card, LinkCard } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
@@ -43,7 +44,7 @@ export default async function AdminCasesPage({ searchParams }: PageProps<"/admin
       "id, subject, status, priority, category, created_at, requester:profiles!support_cases_requester_id_profiles_id_fk(display_name)",
     );
   if (activeStatus) {
-    casesQuery = casesQuery.eq("status", activeStatus);
+    casesQuery = casesQuery.eq("status", activeStatus as Database["public"]["Tables"]["support_cases"]["Row"]["status"]);
   }
   const { data: cases } = await casesQuery
     .order("created_at", { ascending: false })

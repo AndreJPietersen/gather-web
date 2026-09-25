@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import type { Json } from "@gather/db/database.types";
 
 // Every admin mutation writes one row here — editing a planner's profile,
 // cancelling an event, approving/rejecting a claim, resolving a case. A
@@ -22,7 +23,7 @@ export async function logAdminAction(params: {
     action: params.action,
     target_table: params.targetTable,
     target_id: params.targetId ?? null,
-    detail: params.detail ?? null,
+    detail: (params.detail ?? null) as Json | null,
   });
 
   if (error) {

@@ -6,21 +6,31 @@
 
 ## ▶ Where to pick up (updated 2026-09-25)
 
-**State:** L0 and L1 (monorepo) are merged into `develop`. Andre has **no real third-party accounts yet**, so the plan is to build everything that can be built without them first, and to flag exactly where an account becomes necessary (see "Real accounts: what needs them, and when" below). `main`/`develop` are protected: changes go by pull request and need the `checks` job green.
+**State (2026-09-25, end of the no-accounts phase):** epics **L0–L5 are built**: repo hygiene, monorepo, migration runner + seed + CI e2e, launch readiness (password reset, account deletion, draft legal pages, branded auth emails, 404/SEO, unused-file cleanup), the native-app API, and the typed data layer. Andre has **no real third-party accounts yet**. `main`/`develop` are protected: changes go by pull request and need the `checks` job green. **Merge order for the last two branches: `fix/bundle-fonts` (fixes a CI build failure on GitHub), then `feat/l5-typed-data-layer`.**
 
-**Done without accounts (branch `chore/l2-seed-and-ci`):** one migration runner for both migration folders (`npm run db:migrate`), the seed script (`db:seed:reference` / `db:seed:demo`), and an `e2e` CI job that builds a fresh database, seeds it and runs all ten Playwright suites. Verified locally against a from-scratch database: 10/10 suites pass.
+**Verified at the end of this phase**: typecheck (4 workspaces), unit tests, lint (0 errors), production build; **14 end-to-end/security suites pass**; a database built from nothing by `npm run db:migrate` (all 76 migrations) plus the seeds has a schema fingerprint **identical** to the long-lived local database, and `db:types:check` passes on it; `npm audit` shows 0 production vulnerabilities.
+
+**When the accounts arrive — runbook, in this order:**
+1. **Supabase** (QA project, then production): create the project (region decision), then `DATABASE_URL=<direct connection string> npm run db:migrate -- --remote`, `db:seed:reference` (production) or `db:seed:reference` + `db:seed:demo` with `GATHER_ENV=qa` (QA). Paste the four `supabase/templates/*.html` auth emails into Auth → Email Templates; set Site URL and redirect URLs; **production: keep sign-ups paused and featured off** (`/admin/settings`). Flag the first admin by hand. Then add the GitHub Action that migrates QA on merge to `develop` and production on `main` with manual approval (L2).
+2. **Vercel**: project root `apps/web`; environment variables per environment (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `EMAIL_FROM`, `RESEND_API_KEY`, `EMAIL_SITE_URL`, `EMAIL_UNSUBSCRIBE_SECRET`, `CRON_SECRET`); `apps/web/vercel.json` already schedules the daily unused-file cleanup.
+3. **Domain + Resend**: verified sending domain (SPF/DKIM/DMARC), custom SMTP in Supabase Auth, `qa.` subdomain.
+4. **Re-run the security suites against QA** (`E2E_BASE_URL`, `E2E_DB_URL` and the Supabase variables point the suites at another environment), then make the `e2e` CI job a required check.
+5. **Legal**: fill in the placeholders in `packages/shared/src/legal-info.ts`, lawyer review, set `LEGAL_IS_DRAFT = false`.
+6. **Sentry / analytics, Cloudflare Turnstile** (L3/L2), then **Expo/EAS, Apple, Google** for the apps (L6–L10), **Mapbox** for L13.
 
 **Next, in order (no accounts needed):**
-1. **L5** generated Supabase types and a shared data layer (`supabase gen types` into `packages/db`; a client factory for web and mobile).
-2. **L6/L7** Expo app foundation and screens (Android emulator via Android Studio; iPhone via Expo Go). L4's API is ready for the flows the apps can't do through Supabase directly.
-3. **L13** database part (PostGIS, near-me query, location forms). Map rendering waits for Mapbox.
-4. L3 leftovers: Open Graph/page titles, an admin-assisted data-export tool, the OKLCH contrast and mobile-pass items from `gather_web_epic_roadmap.md`.
+1. **L6/L7** Expo app foundation and screens (Android emulator via Android Studio; iPhone via Expo Go). Everything the app needs is ready: the database with RLS, `/api/v1` (L4), and typed `createGatherClient` (L5).
+2. **L13** database part (PostGIS, near-me query, location forms). Map rendering waits for Mapbox.
+3. L3 leftovers: Open Graph/page titles, an admin-assisted data-export tool, the OKLCH contrast and mobile-pass items from `gather_web_epic_roadmap.md`.
+
+**After every migration**: run `npm run db:types` and commit `packages/db/src/database.types.ts`; also append the migration to `packages/db/manifest.mjs`.
 
 **In parallel, Andre (admin, long lead times):** decide individual vs organisation for the developer accounts (an organisation needs a D-U-N-S number, 1–2 weeks); pick the domain and store app name; start Apple/Google enrolment; create the free accounts (Supabase, Vercel, Expo, Mapbox, Resend, Cloudflare). **Do not add a payment method to any free account — tell Claude if one asks for a card.**
 
 **Still waiting on Andre:** the decisions in "Decisions still needed from Andre" below. L2's online parts need at least the domain, the Supabase region and the developer-account choice.
 
 **Known gaps**
+- Local phone testing (`npm run dev:mobile`): see the checklist in `README.md` — the server must be running, same Wi-Fi, LAN IP in `.env.local`, firewall. Password-reset emails link to the Supabase Site URL (localhost locally).
 - The `e2e` CI job is new and not yet a required check. Make it required in the GitHub rulesets after it has been green on GitHub for a while.
 - `npm audit`: 0 vulnerabilities in production dependencies; 6 moderate in dev tooling only (vitest / esbuild / drizzle-kit chains), present before L0.
 
@@ -144,10 +154,11 @@ Things the website needs before any real user (and which the stores also require
 - [x] Tests: `e2e/scripts/api-v1.mjs` — 34 checks, every endpoint with no token, a garbage token, a stranger's token and the right token, plus a suspended and a deleted account's token.
 - [ ] *(needs accounts: Cloudflare/Vercel)* per-IP rate limiting for the one unauthenticated endpoint (guest RSVP). Today only the website's own behaviour (none) is matched.
 
-### L5 — Shared package & typed data layer (S)
-- [ ] Generate **Supabase TypeScript types** (`supabase gen types`) into `packages/db`, used by both apps. Today the web code types query results by hand with `.returns<…>()`.
-- [ ] A shared Supabase client factory that works for web (cookies via `@supabase/ssr`) and mobile (session in `expo-secure-store`).
-- [ ] Unit tests move with the code they cover.
+### L5 — Shared package & typed data layer (S) — **done 2026-09-25**
+- [x] Generated **Supabase TypeScript types** in `packages/db/src/database.types.ts` (`npm run db:types`, from the migrated database via the Supabase CLI; `@gather/db/database.types`). All web Supabase clients (cookie server, browser, service role, middleware, bearer-token) are now typed with `Database`, so a wrong table or column name is a compile error. Turning it on found 9 genuine looseness spots (a numeric price passed as a string, untyped roles/statuses, a JSON column) — fixed. **CI fails a pull request whose migration changed the schema without regenerated types** (`db:types:check` in the `e2e` job).
+- [x] A shared Supabase client factory, `createGatherClient()` (`@gather/db/client`), for the mobile app, scripts and bearer-token servers: takes a `storage` adapter (the mobile app passes one over `expo-secure-store`) and can act as one person for a single request. The website keeps `@supabase/ssr` (cookies) with the same `Database` type.
+- [x] Unit tests move with the code they cover (done in L1); new `client.test.ts` in `packages/db` checks the factory and, through the compiler, that unknown tables/columns are rejected.
+- [ ] Still hand-typed in places: many web queries use `.returns<…>()` for embedded (joined) results. Those still work and can be replaced by generated types gradually, when a file is touched anyway.
 
 ### L6 — Mobile app foundation (L)
 - [ ] `apps/mobile`: Expo (current SDK), **Expo Router** (file-based, like Next.js), TypeScript, NativeWind (Tailwind for React Native) using `packages/tokens`.
@@ -344,6 +355,8 @@ To add, when each epic arrives:
 - **L13**: nothing to install; just a Mapbox account and tokens (one set for QA, one for production).
 
 ## Progress log
+
+- **2026-09-25**: **L5 done**: generated `Database` types + drift check in CI, typed web clients, `createGatherClient()` for mobile. Also fixed a CI build failure (Google Fonts download failed on GitHub's runners) by bundling the fonts locally.
 
 - **2026-09-25**: **L4 done** (no accounts needed): `/api/v1` with 9 endpoints over shared service functions (`apps/web/src/server/`), the website's Server Actions refactored into thin wrappers, `docs/gather_api_v1.md`, and an e2e suite of 34 checks.
 

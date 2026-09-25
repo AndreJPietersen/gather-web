@@ -13,7 +13,7 @@ function safeNext(next: string | null): string {
 }
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const next = safeNext(searchParams.get("next"));
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
@@ -26,5 +26,8 @@ export async function GET(request: NextRequest) {
   } else if (tokenHash && type) {
     ok = !(await supabase.auth.verifyOtp({ type, token_hash: tokenHash })).error;
   }
-  return NextResponse.redirect(`${origin}${ok ? next : "/login?link=invalid"}`);
+  // A relative Location, resolved by the browser against the address it used.
+  // (Building an absolute URL from request.url breaks under `npm run dev:mobile`,
+  // where the server sees itself as 0.0.0.0, and behind proxies.)
+  return new NextResponse(null, { status: 307, headers: { Location: ok ? next : "/login?link=invalid" } });
 }

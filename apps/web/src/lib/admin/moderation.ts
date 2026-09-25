@@ -84,7 +84,7 @@ export async function suspendUser(
   await service.from("user_suspensions").upsert({ user_id: userId, reason, suspended_by: adminId }, { onConflict: "user_id" });
 
   // Anything they were waiting on would otherwise sit in the admin queues.
-  const reviewed = { status: "rejected", reviewed_by: adminId, reviewed_at: new Date().toISOString(), rejection_reason: "Account suspended." };
+  const reviewed = { status: "rejected" as const, reviewed_by: adminId, reviewed_at: new Date().toISOString(), rejection_reason: "Account suspended." };
   await Promise.all([
     service.from("vendor_claim_requests").update(reviewed).eq("created_by", userId).eq("status", "pending"),
     service.from("vendor_business_requests").update(reviewed).eq("requester_id", userId).eq("status", "pending"),

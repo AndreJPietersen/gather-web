@@ -64,7 +64,7 @@ export async function updateMemberRole(formData: FormData): Promise<void> {
   const memberId = formData.get("memberId");
   const vendorId = formData.get("vendorId");
   const role = formData.get("role");
-  if (typeof memberId !== "string" || typeof vendorId !== "string" || typeof role !== "string") return;
+  if (typeof memberId !== "string" || typeof vendorId !== "string" || (role !== "owner" && role !== "manager" && role !== "staff")) return;
 
   const supabase = await createClient();
   await supabase.from("vendor_team_members").update({ role }).eq("id", memberId);
