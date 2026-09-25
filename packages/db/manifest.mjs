@@ -1,0 +1,91 @@
+// The order in which every migration is applied to a FRESH database.
+//
+// Why a manifest: the raw Supabase SQL migrations (supabase/migrations) and the
+// Drizzle migrations (packages/db/migrations) depend on each other in both
+// directions — Drizzle's policies call helper functions that raw migrations
+// create, while those functions and later raw migrations need Drizzle's
+// tables. No single-folder order works, so the interleaving is written down.
+//
+// This order was discovered by applying both folders to an empty database and
+// then PROVEN: the resulting schema (tables, columns, constraints, indexes,
+// RLS policies incl. storage, functions, triggers, grants, enums, buckets)
+// matched the long-lived local database exactly (scripts/fingerprint.mjs).
+// Do not reorder existing entries. New migrations are APPENDED here — a test
+// (manifest.test.ts) fails if a migration file is missing from this list.
+//
+// Format: "raw:<file in supabase/migrations>" or "drizzle:<file in migrations>".
+export const MANIFEST = [
+  "raw:00000000000002_rls_helper_functions.sql",
+  "raw:00000000000003_restore_public_grants.sql",
+  "raw:00000000000004_event_pending_invitee_function.sql",
+  "raw:00000000000006_vendor_invite_email_match_function.sql",
+  "raw:00000000000007_is_admin_function.sql",
+  "raw:00000000000014_support_case_attachments_bucket.sql",
+  "raw:00000000000016_mood_board_storage_bucket.sql",
+  "drizzle:0000_silent_venus.sql",
+  "raw:00000000000001_profiles_on_signup.sql",
+  "raw:00000000000005_installment_sum_check.sql",
+  "raw:00000000000010_gallery_storage_buckets.sql",
+  "raw:00000000000011_is_vendor_verified_function.sql",
+  "raw:00000000000013_payment_proofs_bucket.sql",
+  "drizzle:0001_bitter_sprite.sql",
+  "raw:00000000000009_profiles_column_grants.sql",
+  "drizzle:0002_wooden_wilson_fisk.sql",
+  "drizzle:0003_simple_korvac.sql",
+  "drizzle:0004_polite_deathbird.sql",
+  "drizzle:0005_many_stardust.sql",
+  "drizzle:0006_milky_blonde_phantom.sql",
+  "drizzle:0007_mature_iron_monger.sql",
+  "drizzle:0008_puzzling_prowler.sql",
+  "raw:00000000000008_fix_is_admin_exposure.sql",
+  "drizzle:0009_lonely_living_mummy.sql",
+  "drizzle:0010_common_scrambler.sql",
+  "drizzle:0011_powerful_devos.sql",
+  "drizzle:0012_silky_silvermane.sql",
+  "drizzle:0013_nervous_chimera.sql",
+  "drizzle:0014_legal_sheva_callister.sql",
+  "raw:00000000000012_event_vendor_chat.sql",
+  "drizzle:0015_sad_champions.sql",
+  "drizzle:0016_nebulous_scarlet_spider.sql",
+  "drizzle:0017_polite_doomsday.sql",
+  "drizzle:0018_glossy_shard.sql",
+  "drizzle:0019_stiff_madame_web.sql",
+  "drizzle:0020_easy_photon.sql",
+  "drizzle:0021_skinny_maria_hill.sql",
+  "drizzle:0022_flippant_eternity.sql",
+  "drizzle:0023_deep_sunspot.sql",
+  "raw:00000000000015_vendor_featured_logo.sql",
+  "drizzle:0024_stiff_lady_mastermind.sql",
+  "drizzle:0025_concerned_cloak.sql",
+  "drizzle:0026_spotty_mysterio.sql",
+  "drizzle:0027_known_kulan_gath.sql",
+  "drizzle:0028_real_domino.sql",
+  "drizzle:0029_empty_lady_mastermind.sql",
+  "drizzle:0030_vendor_feature_placements.sql",
+  "drizzle:0031_vendor_featured_functions.sql",
+  "drizzle:0032_drop_vendor_is_featured.sql",
+  "drizzle:0033_feature_requests_and_prices.sql",
+  "drizzle:0034_seed_feature_prices.sql",
+  "drizzle:0035_app_settings.sql",
+  "drizzle:0036_featured_switch.sql",
+  "drizzle:0037_vendor_business_requests.sql",
+  "drizzle:0038_drop_owner_direct_add.sql",
+  "drizzle:0039_admin_watchlist.sql",
+  "drizzle:0040_team_member_update_columns.sql",
+  "drizzle:0041_admin_moderation.sql",
+  "drizzle:0042_admin_watchlist_v2.sql",
+  "drizzle:0043_registration_switch.sql",
+  "drizzle:0044_registration_guard.sql",
+  "drizzle:0045_listing_daily_limit.sql",
+  "drizzle:0046_listing_daily_limit_guard.sql",
+  "drizzle:0047_block_suspended_writes.sql",
+  "drizzle:0048_limits_and_rate_tables.sql",
+  "drizzle:0049_security_hardening.sql",
+  "drizzle:0050_write_rate_limits.sql",
+  "drizzle:0051_review_reply_upsert_grant.sql",
+  "drizzle:0052_staff_permissions.sql",
+  "drizzle:0053_quote_status_rules.sql",
+  "drizzle:0054_staff_storage_and_limits.sql",
+  "drizzle:0055_admin_email.sql",
+  "drizzle:0056_admin_email_seed_and_audience.sql",
+];

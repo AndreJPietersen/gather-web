@@ -24,7 +24,9 @@
     "db:push": "echo 'DO NOT USE — drizzle-kit push silently drops RLS policy conditions, see docs/gather_web_architecture.md. Use db:generate then db:migrate instead.' && exit 1",
     "db:studio": "npm run db:studio -w @gather/db",
     "e2e": "playwright test",
-    "e2e:security": "playwright test -g security"
+    "e2e:security": "playwright test -g security",
+    "db:migrate:status": "npm run db:migrate:status -w @gather/db",
+    "db:fingerprint": "npm run db:fingerprint -w @gather/db --"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
