@@ -9,10 +9,14 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "src/**/*.ts",
-    "drizzle.config.ts"
+    "drizzle.config.ts",
+    "manifest.test.ts"
   ]
 }

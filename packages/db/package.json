@@ -8,15 +8,23 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:migrate:status": "node scripts/migrate.mjs --status",
+    "db:fingerprint": "node scripts/fingerprint.mjs",
+    "db:studio": "drizzle-kit studio",
+    "db:seed:reference": "node scripts/seed.mjs reference",
+    "db:seed:demo": "node scripts/seed.mjs demo"
   },
   "dependencies": {
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.10",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7",
+    "@types/node": "^20"
   }
 }

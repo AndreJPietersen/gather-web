@@ -1,0 +1,232 @@
+{
+  "serviceCategories": [
+    "Bartending/Beverage Service",
+    "Cakes & Desserts",
+    "Catering",
+    "Decor & Styling",
+    "Entertainment",
+    "Event Planning/Coordination",
+    "Florals",
+    "Furniture & Tent Rentals",
+    "Hair & Makeup",
+    "Invitations & Stationery",
+    "Lighting & AV",
+    "Live Band",
+    "Music/DJ",
+    "Officiant",
+    "Photo Booth",
+    "Photography",
+    "Security",
+    "Transportation",
+    "Venue/Rentals",
+    "Videography"
+  ],
+  "eventTypes": [
+    "Anniversary",
+    "Baby Shower",
+    "Bar/Bat Mitzvah",
+    "Birthday Party",
+    "Bridal Shower",
+    "Conference",
+    "Corporate Event",
+    "Engagement Party",
+    "Fundraiser/Gala",
+    "Graduation",
+    "Holiday Party",
+    "Memorial/Funeral Service",
+    "Networking Event",
+    "Product Launch",
+    "Quinceañera",
+    "Religious Ceremony",
+    "Retirement Party",
+    "Reunion",
+    "Team Building",
+    "Wedding"
+  ],
+  "eventTypeServiceCategories": {
+    "Anniversary": [
+      "Cakes & Desserts",
+      "Catering",
+      "Decor & Styling",
+      "Florals",
+      "Music/DJ",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Baby Shower": [
+      "Cakes & Desserts",
+      "Catering",
+      "Decor & Styling",
+      "Florals",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Bar/Bat Mitzvah": [
+      "Cakes & Desserts",
+      "Catering",
+      "Decor & Styling",
+      "Entertainment",
+      "Music/DJ",
+      "Photography",
+      "Venue/Rentals",
+      "Videography"
+    ],
+    "Birthday Party": [
+      "Cakes & Desserts",
+      "Catering",
+      "Decor & Styling",
+      "Entertainment",
+      "Furniture & Tent Rentals",
+      "Music/DJ",
+      "Photo Booth",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Bridal Shower": [
+      "Cakes & Desserts",
+      "Catering",
+      "Decor & Styling",
+      "Florals",
+      "Photography"
+    ],
+    "Conference": [
+      "Catering",
+      "Event Planning/Coordination",
+      "Lighting & AV",
+      "Photography",
+      "Transportation",
+      "Venue/Rentals",
+      "Videography"
+    ],
+    "Corporate Event": [
+      "Catering",
+      "Entertainment",
+      "Event Planning/Coordination",
+      "Lighting & AV",
+      "Photography",
+      "Security",
+      "Transportation",
+      "Venue/Rentals",
+      "Videography"
+    ],
+    "Engagement Party": [
+      "Catering",
+      "Decor & Styling",
+      "Florals",
+      "Music/DJ",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Fundraiser/Gala": [
+      "Bartending/Beverage Service",
+      "Catering",
+      "Entertainment",
+      "Event Planning/Coordination",
+      "Lighting & AV",
+      "Live Band",
+      "Music/DJ",
+      "Photography",
+      "Venue/Rentals",
+      "Videography"
+    ],
+    "Graduation": [
+      "Cakes & Desserts",
+      "Catering",
+      "Decor & Styling",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Holiday Party": [
+      "Bartending/Beverage Service",
+      "Catering",
+      "Decor & Styling",
+      "Entertainment",
+      "Music/DJ",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Memorial/Funeral Service": [
+      "Catering",
+      "Florals",
+      "Officiant",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Networking Event": [
+      "Bartending/Beverage Service",
+      "Catering",
+      "Lighting & AV",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Product Launch": [
+      "Catering",
+      "Entertainment",
+      "Event Planning/Coordination",
+      "Lighting & AV",
+      "Photography",
+      "Venue/Rentals",
+      "Videography"
+    ],
+    "Quinceañera": [
+      "Cakes & Desserts",
+      "Catering",
+      "Decor & Styling",
+      "Florals",
+      "Hair & Makeup",
+      "Music/DJ",
+      "Photography",
+      "Venue/Rentals",
+      "Videography"
+    ],
+    "Religious Ceremony": [
+      "Catering",
+      "Florals",
+      "Music/DJ",
+      "Officiant",
+      "Photography",
+      "Videography"
+    ],
+    "Retirement Party": [
+      "Cakes & Desserts",
+      "Catering",
+      "Decor & Styling",
+      "Music/DJ",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Reunion": [
+      "Catering",
+      "Decor & Styling",
+      "Music/DJ",
+      "Photography",
+      "Venue/Rentals"
+    ],
+    "Team Building": [
+      "Catering",
+      "Entertainment",
+      "Transportation",
+      "Venue/Rentals"
+    ],
+    "Wedding": [
+      "Bartending/Beverage Service",
+      "Cakes & Desserts",
+      "Catering",
+      "Decor & Styling",
+      "Event Planning/Coordination",
+      "Florals",
+      "Furniture & Tent Rentals",
+      "Hair & Makeup",
+      "Invitations & Stationery",
+      "Lighting & AV",
+      "Live Band",
+      "Music/DJ",
+      "Officiant",
+      "Photo Booth",
+      "Photography",
+      "Transportation",
+      "Venue/Rentals",
+      "Videography"
+    ]
+  }
+}

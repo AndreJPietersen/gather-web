@@ -2,7 +2,7 @@
 
 ## Repository layout (monorepo since 2026-09-25)
 
-Run commands from the repo root (`npm run typecheck | lint | test | build | e2e | dev`). The website is `apps/web` (its `@/…` alias = `apps/web/src/…`); shared TypeScript is `packages/shared` (import as `@gather/shared/<module>`); the Drizzle schema and migrations are `packages/db`; colour themes are `packages/tokens`; the Expo app will be `apps/mobile`. Env vars live in `apps/web/.env.local`. Full layout and rationale: README.md and `docs/gather_web_architecture.md`. Paths in every doc are repo-root-relative.
+Run commands from the repo root (`npm run typecheck | lint | test | build | e2e | dev`). The website is `apps/web` (its `@/…` alias = `apps/web/src/…`); shared TypeScript is `packages/shared` (import as `@gather/shared/<module>`); the Drizzle schema and migrations are `packages/db`; colour themes are `packages/tokens`; the Expo app will be `apps/mobile`. Env vars live in `apps/web/.env.local`. **Migrations:** always `npm run db:migrate` (never `drizzle-kit migrate` or `supabase db reset` — the two migration folders depend on each other); a new migration file must also be appended to `packages/db/manifest.mjs` (a test enforces it). Seed data: `npm run db:seed:reference|demo`. Full layout and rationale: README.md and `docs/gather_web_architecture.md`. Paths in every doc are repo-root-relative.
 
 ## Standing instructions for this project
 

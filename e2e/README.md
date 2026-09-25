@@ -54,9 +54,15 @@ Shared plumbing (config, `check()`, login, exit codes) is in `lib/harness.mjs`.
 
 ## In CI
 
-Not yet. They need a Supabase stack seeded with the test accounts and demo
-data, which doesn't exist as a script (epic **L2**, "QA seed data", in
-`docs/gather_launch_roadmap.md`). The GitHub Actions workflow
-(`.github/workflows/ci.yml`) currently runs typecheck, lint, unit tests and the
-build. Once a seed script exists, add a job that starts Supabase, migrates,
-seeds, starts the app, and runs `npm run e2e`.
+The `e2e` job in `.github/workflows/ci.yml` starts a throwaway local Supabase
+stack, builds the database with `npm run db:migrate`, fills it with
+`db:seed:reference` and `db:seed:demo`, builds and starts the app, and runs
+`npm run e2e`. It is not a required check yet.
+
+## Fresh local database
+
+The suites assume the seeded accounts (`vendortest@gather.dev`,
+`phonetest@gather.dev`, password `GatherTest123!`), a live featured vendor
+that isn't Dr Dre DJ, and the reference data. To rebuild a clean copy of all of
+that: `npm run db:stop`, delete the Supabase Docker volumes (or use a second
+stack), `npm run db:start`, then `npm run db:migrate && npm run db:seed:reference && npm run db:seed:demo`.

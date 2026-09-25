@@ -7,11 +7,11 @@ name: CI
 # talks to Supabase; the values below are placeholders only so the code that
 # reads them at import time doesn't crash.
 #
-# The end-to-end and security suites (npm run e2e, e2e/README.md) are NOT in
-# CI yet: they need a Supabase stack seeded with the test accounts and demo
-# data, which is epic L2 ("QA seed data") in docs/gather_launch_roadmap.md.
-# Once a seed script exists, add a job that runs `supabase start`,
-# `npm run db:migrate`, the seed, `npm run dev`, then `npm run e2e`.
+# "e2e" runs the Playwright end-to-end and security suites (e2e/README.md)
+# against a throwaway local Supabase stack that is built from nothing by the
+# migration runner and filled by the seed script. It is deliberately NOT a
+# required check yet: make it required in the rulesets once it has been green
+# on GitHub for a while.
 
 on:
   pull_request:
@@ -48,3 +48,57 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GATHER_ENV: ci
+      NEXT_TELEMETRY_DISABLED: "1"
+      E2E_BASE_URL: http://localhost:3000
+      E2E_MAILPIT_URL: http://127.0.0.1:54324
+      E2E_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      EMAIL_SITE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Start local Supabase
+        run: npx supabase start -x studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
+      - name: Export Supabase keys
+        run: |
+          npx supabase status -o env > /tmp/supabase.env
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(grep '^API_URL=' /tmp/supabase.env | cut -d= -f2- | tr -d '"')"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(grep '^ANON_KEY=' /tmp/supabase.env | cut -d= -f2- | tr -d '"')"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(grep '^SERVICE_ROLE_KEY=' /tmp/supabase.env | cut -d= -f2- | tr -d '"')"
+          } >> "$GITHUB_ENV"
+      - name: Build the database and seed it
+        run: |
+          npm run db:migrate
+          npm run db:seed:reference
+          npm run db:seed:demo
+      - name: Build the app
+        run: npm run build
+      - name: Start the app
+        run: |
+          npm run start > /tmp/app.log 2>&1 &
+          npx --yes wait-on http-get://localhost:3000 --timeout 60000
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Run the e2e and security suites
+        run: npm run e2e
+      - name: Upload report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-output
+          path: |
+            playwright-report
+            e2e/.output
+            /tmp/app.log
+          if-no-files-found: ignore

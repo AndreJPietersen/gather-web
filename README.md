@@ -29,7 +29,9 @@ Import shared code as `@gather/shared/<module>` (e.g. `@gather/shared/utils`, `@
 | `npm run dev` / `dev:mobile` | the website (`dev:mobile` binds to your LAN for a phone) |
 | `npm run typecheck` · `lint` · `test` · `build` | the same checks CI runs, across every workspace (cached by Turborepo) |
 | `npm run db:start` / `db:stop` | the local Supabase stack |
-| `npm run db:generate` / `db:migrate` | Drizzle migrations (in `packages/db`) |
+| `npm run db:generate` | write a new Drizzle migration after changing `packages/db/src/schema.ts` (then add it to `packages/db/manifest.mjs`) |
+| `npm run db:migrate` / `db:migrate:status` | apply **both** migration folders to a database, in order (`packages/db/scripts/migrate.mjs`); `--adopt` records a hand-migrated database without running anything |
+| `npm run db:seed:reference` / `db:seed:demo` | reference data (safe everywhere) / fake demo data (local, CI, QA only) |
 | `npm run e2e` / `e2e:security` | the end-to-end and security suites (`e2e/README.md`) |
 
 ## One-time local setup (Docker + Supabase)
